@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.thejebforge.trickster_lisp.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MixinGlyphComponent"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "GlyphComponentAccessor"
+  ]
+}

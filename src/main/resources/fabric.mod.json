@@ -1,0 +1,43 @@
+{
+	"schemaVersion": 1,
+	"id": "trickster_lisp",
+	"version": "${version}",
+	"name": "Trickster LISP",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/trickster_lisp/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.thejebforge.trickster_lisp.TricksterLISP"
+		],
+		"client": [
+			"com.thejebforge.trickster_lisp.TricksterLISPClient"
+		]
+	},
+	"mixins": [
+		"trickster_lisp.mixins.json",
+		{
+			"config": "trickster_lisp.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"accessWidener" : "trickster_lisp.accesswidener",
+	"depends": {
+		"fabricloader": ">=0.16.5",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*",
+		"trickster": ">=2.0.0-alpha.36"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}

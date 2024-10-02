@@ -1,0 +1,4 @@
+accessWidener v2 named
+accessible class net/minecraft/client/gui/EditBox$Substring
+accessible field net/minecraft/client/font/TextRenderer fontStorageAccessor Ljava/util/function/Function;
+accessible field net/minecraft/client/font/TextRenderer validateAdvance Z

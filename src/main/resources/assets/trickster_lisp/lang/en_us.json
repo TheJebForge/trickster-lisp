@@ -1,0 +1,8 @@
+{
+  "item.trickster_lisp.transpiler": "Spell LISP Transpiler",
+  "trickster_lisp.screen.transpiler": "Spell LISP Transpiler",
+  "trickster_lisp.screen.transpiler.load": "Load",
+  "trickster_lisp.screen.transpiler.validate": "Validate",
+  "trickster_lisp.screen.transpiler.store": "Store",
+  "trickster_lisp.tooltip.code": "Saved Code:"
+}

@@ -1,0 +1,26 @@
+{
+  "required": true,
+  "package": "com.thejebforge.trickster_lisp.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "transpiler.MixinBlockTypeFragment",
+    "transpiler.MixinBooleanFragment",
+    "transpiler.MixinDimensionFragment",
+    "transpiler.MixinEntityFragment",
+    "transpiler.MixinEntityTypeFragment",
+    "transpiler.MixinItemTypeFragment",
+    "transpiler.MixinListFragment",
+    "transpiler.MixinNumberFragment",
+    "transpiler.MixinPatternGlyph",
+    "transpiler.MixinSlotFragment",
+    "transpiler.MixinSpellPart",
+    "transpiler.MixinStringFragment",
+    "transpiler.MixinTypeFragment",
+    "transpiler.MixinVectorFragment",
+    "transpiler.MixinVoidFragment",
+    "transpiler.MixinZalgoFragment"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+	}
+}
