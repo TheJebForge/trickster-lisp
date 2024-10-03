@@ -1,6 +1,6 @@
 grammar lisp;
 
-root : sExpression+ EOF | EOF;
+root : preprocessor* sExpression* EOF;
 
 sExpression :
     VOID
@@ -13,7 +13,10 @@ sExpression :
     | call
     | list;
 
-call : '(' subject=sExpression sExpression* ')';
+preprocessor :
+    '(' '#def' name=IDENTIFIER '(' args+=IDENTIFIER* ')' substitute=sExpression ')' # macro;
+
+call : '(' subject=sExpression args+=sExpression* ')';
 
 list : '[' sExpression? (',' sExpression)* ']';
 

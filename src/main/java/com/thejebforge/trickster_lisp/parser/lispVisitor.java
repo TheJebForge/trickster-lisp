@@ -23,6 +23,13 @@ public interface lispVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSExpression(lispParser.SExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code macro}
+	 * labeled alternative in {@link lispParser#preprocessor}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMacro(lispParser.MacroContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link lispParser#call}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

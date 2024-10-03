@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "iGi",
+    "R/R",
+    "iQi"
+  ],
+  "key": {
+    "i": {
+      "item": "minecraft:iron_ingot"
+    },
+    "G": {
+      "item": "minecraft:glow_ink_sac"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "/": {
+      "item": "minecraft:stick"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    }
+  },
+  "result": {
+    "id": "trickster_lisp:transpiler",
+    "count": 1
+  }
+}

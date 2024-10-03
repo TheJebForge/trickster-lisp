@@ -1,10 +1,11 @@
 package com.thejebforge.trickster_lisp.screen;
 
-import com.thejebforge.trickster_lisp.TricksterLISP;
+import com.thejebforge.trickster_lisp.item.ModItems;
 import com.thejebforge.trickster_lisp.item.component.ModComponents;
 import com.thejebforge.trickster_lisp.item.component.RawCodeComponent;
 import com.thejebforge.trickster_lisp.transpiler.LispAST;
 import com.thejebforge.trickster_lisp.transpiler.SpellConverter;
+import com.thejebforge.trickster_lisp.transpiler.util.CallUtils;
 import dev.enjarai.trickster.item.component.SpellComponent;
 import dev.enjarai.trickster.spell.SpellPart;
 import io.wispforest.owo.client.screens.SyncedProperty;
@@ -15,15 +16,18 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.util.Hand;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public class TranspilerScreenHandler extends ScreenHandler {
 
     public final ItemStack currentStack;
-    public final ItemStack otherHandStack;
+    public ItemStack otherHandStack;
 
     public final SyncedProperty<String> validationText = createProperty(String.class, "");
     public final SyncedProperty<SpellPart> spell = createProperty(SpellPart.class, SpellPart.ENDEC, null);
-    public final SyncedProperty<String> rawCode = createProperty(String.class, "");
+    public final SyncedProperty<String> initialRawCode = createProperty(String.class, "");
+
+    public Consumer<String> replaceCodeCallback;
 
     public TranspilerScreenHandler(int syncId, PlayerInventory playerInventory) {
         this(syncId, playerInventory, playerInventory.player, null, null, null);
@@ -45,16 +49,26 @@ public class TranspilerScreenHandler extends ScreenHandler {
         if (currentStack != null) {
             var code = currentStack.get(ModComponents.RAW_CODE_COMPONENT);
             if (code != null) {
-                rawCode.set(code.content());
+                initialRawCode.set(code.content());
             }
         }
 
         addServerboundMessage(LoadCode.class, msg -> {
+            if (otherHandStack != null) {
+                var code = otherHandStack.get(ModComponents.RAW_CODE_COMPONENT);
+
+                if (code != null) {
+                    sendMessage(new ReplaceCode(code.content()));
+                    validationText.set("Code loaded successfully");
+                    return;
+                }
+            }
+
             var currentSpell = spell.get();
 
             if (currentSpell != null) {
                 validationText.set("Spell loaded successfully");
-                rawCode.set(SpellConverter.spellToAST(currentSpell).toCode());
+                sendMessage(new ReplaceCode(SpellConverter.spellToAST(currentSpell).toCode()));
             } else {
                 validationText.set("Couldn't load spell from offhand");
             }
@@ -68,7 +82,7 @@ public class TranspilerScreenHandler extends ScreenHandler {
             try {
                 var ast = LispAST.parse(msg.code);
                 validationText.set("SUCCESS");
-                rawCode.set(ast.toCode());
+                sendMessage(new ReplaceCode(ast.toCode()));
             } catch (LispAST.ParseError e) {
                 validationText.set(e.getMessage());
             }
@@ -88,15 +102,28 @@ public class TranspilerScreenHandler extends ScreenHandler {
                 return;
             }
 
+            if (otherHandStack.isOf(ModItems.PAPER_AND_PENCIL)) {
+                otherHandStack.set(ModComponents.RAW_CODE_COMPONENT, new RawCodeComponent(msg.code));
+                validationText.set("Printed code to paper");
+                return;
+            }
+
             try {
                 var ast = LispAST.parse(msg.code);
                 var spellPart = SpellConverter.astToSpell(ast);
 
                 SpellComponent.setSpellPart(otherHandStack, spellPart, Optional.empty(), false);
+                this.spell.set(spellPart);
 
                 validationText.set("SUCCESS");
-            } catch (Exception e) {
+            } catch (LispAST.ParseError | CallUtils.ConversionError e) {
                 validationText.set(e.getMessage());
+            }
+        });
+
+        addClientboundMessage(ReplaceCode.class, msg -> {
+            if (replaceCodeCallback != null) {
+                replaceCodeCallback.accept(msg.code);
             }
         });
     }
@@ -116,6 +143,8 @@ public class TranspilerScreenHandler extends ScreenHandler {
     public boolean canUse(PlayerEntity player) {
         return true;
     }
+
+    public record ReplaceCode(String code) {}
 
     public record LoadCode() {}
     public record ValidateCode(String code) {}

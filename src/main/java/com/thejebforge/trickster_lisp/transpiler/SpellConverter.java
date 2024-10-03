@@ -201,6 +201,8 @@ public abstract class SpellConverter {
     }
 
     public static SpellPart astToSpell(LispAST.Root root) {
+        root = root.runPreProcessors();
+
         if (root.expressions().isEmpty()) {
             return new SpellPart();
         } else if (root.expressions().size() == 1) {

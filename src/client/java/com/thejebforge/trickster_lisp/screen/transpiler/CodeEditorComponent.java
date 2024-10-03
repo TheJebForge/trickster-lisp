@@ -132,15 +132,45 @@ public class CodeEditorComponent extends EditBoxWidget {
         return this.editBox.getText().substring(sub.beginIndex(), sub.endIndex());
     }
 
+    private int lastIndexOfHighestFound(String text, String chars) {
+        var result = -1;
+
+        for (char c : chars.toCharArray()) {
+            var index = text.lastIndexOf(c);
+
+            if (index != -1) {
+                result = result == -1 ?
+                        index
+                        : Math.max(result, index);
+            }
+        }
+
+        return result;
+    }
+
+    private int indexOfLowestFound(String text, String chars, int fromIndex) {
+        var result = -1;
+
+        for (char c : chars.toCharArray()) {
+            var index = text.indexOf(c, fromIndex);
+
+            if (index != -1) {
+                result = result == -1 ?
+                        index
+                        : Math.min(result, index);
+            }
+        }
+
+        return result;
+    }
+
     private int countOpenLists(String text) {
         int open = 0;
         int cursor = -1;
 
         while (cursor < text.length()) {
-            int openIndex = text.indexOf('(', cursor + 1);
-            int closedIndex = text.indexOf(')', cursor + 1);
-
-            // TODO: fix list indentation
+            int openIndex = indexOfLowestFound(text, "([", cursor + 1);
+            int closedIndex = indexOfLowestFound(text, "])", cursor + 1);
 
             if (openIndex == -1 && closedIndex == -1) break;
 
@@ -175,7 +205,7 @@ public class CodeEditorComponent extends EditBoxWidget {
             EditBox.Substring location = this.editBox.getLine(lineIndex);
             String line = substring(location);
 
-            int indent = line.lastIndexOf('(');
+            int indent = lastIndexOfHighestFound(line, "([");
             if (indent == -1) continue;
 
             var start = location.beginIndex() + indent;

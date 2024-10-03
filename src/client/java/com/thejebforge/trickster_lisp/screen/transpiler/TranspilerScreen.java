@@ -19,12 +19,15 @@ public class TranspilerScreen extends BaseOwoScreen<FlowLayout> implements Scree
 
     public TranspilerScreen(TranspilerScreenHandler handler, PlayerInventory playerInventory, Text title) {
         super(title);
+
         this.handler = handler;
+
         codeEditor = new CodeEditorComponent(Sizing.expand(), Sizing.fill(50));
         validationArea = new ValidationAreaComponent(Sizing.expand(), Sizing.fixed(60));
 
         handler.validationText.observe(validationArea::setText);
-        handler.rawCode.observe(codeEditor::setText);
+        handler.initialRawCode.observe(codeEditor::setText);
+        handler.replaceCodeCallback = codeEditor::setText;
     }
 
     @Override

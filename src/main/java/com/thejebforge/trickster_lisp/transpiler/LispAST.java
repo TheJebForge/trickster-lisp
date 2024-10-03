@@ -6,10 +6,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.ATNConfigSet;
 import org.antlr.v4.runtime.dfa.DFA;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -17,22 +14,81 @@ import java.util.stream.Collectors;
 public abstract class LispAST {
     private static final int DEFAULT_TAB_SIZE = 4;
 
-    public record Root(List<SExpression> expressions) {
+    public record Root(List<PreProcessor> preProcessors, List<SExpression> expressions) {
         public Root simplifyRoot() {
             if (expressions.size() == 1
                     && expressions.getFirst() instanceof Call call
                     && call.subject instanceof Void
             ) {
-                return new Root(call.arguments);
+                return new Root(preProcessors, call.arguments);
             } else {
                 return this;
             }
         }
 
+        private Map<String, Macro> collectMacroMap() {
+            var map = new HashMap<String, Macro>();
+
+            preProcessors.stream()
+                    .filter(p -> p instanceof Macro)
+                    .map(p -> (Macro) p)
+                    .forEach(m -> map.put(m.name, m));
+
+            return map;
+        }
+
+        private SExpression traverseAndApply(SExpression expr, Function<SExpression, SExpression> func) {
+            expr = func.apply(expr);
+
+            if (expr instanceof Call call) {
+                return new Call(
+                        func.apply(call.subject),
+                        call.arguments.stream()
+                                .map(func)
+                                .toList()
+                );
+            } else if (expr instanceof ExpressionList list) {
+                return new ExpressionList(list.expressions.stream()
+                        .map(func)
+                        .toList());
+            }
+
+            return expr;
+        }
+
+        private SExpression applyMacros(SExpression expr, Map<String, Macro> macros) {
+            if (expr instanceof Call call
+                    && call.subject instanceof Identifier id
+                    && macros.containsKey(id.name)) {
+                return macros.get(id.name).apply(
+                        call.arguments.stream()
+                                .map(e -> traverseAndApply(e, ie -> applyMacros(ie, macros)))
+                                .toList()
+                );
+            } else if (expr instanceof Identifier id
+                    && macros.containsKey(id.name)) {
+                return macros.get(id.name).apply(Collections.emptyList());
+            } else {
+                return expr;
+            }
+        }
+
+        public Root runPreProcessors() {
+            var macros = collectMacroMap();
+
+            return new Root(
+                    preProcessors,
+                    expressions.stream()
+                            .map(rootExpr -> traverseAndApply(rootExpr, expr -> applyMacros(expr, macros)))
+                            .toList()
+            );
+        }
+
         @Override
         public String toString() {
-            return "Root{\n" +
-                    "expressions=" + expressions +
+            return "Root{" +
+                    "\npreProcessors=" + preProcessors +
+                    ", \nexpressions=" + expressions +
                     "\n}";
         }
 
@@ -41,13 +97,114 @@ public abstract class LispAST {
         }
 
         public String toCode(int tabSize) {
-            return expressions.stream()
-                    .map(e -> e.toCode(0, tabSize, false))
-                    .collect(Collectors.joining("\n"));
+            return preProcessors.stream()
+                            .map(p -> p.toCode(0, tabSize, false))
+                            .collect(Collectors.joining("\n"))
+                    + "\n\n" +
+                    expressions.stream()
+                            .map(e -> e.toCode(0, tabSize, false))
+                            .collect(Collectors.joining("\n"));
         }
     }
 
+    // PreProcessors
+
+    public abstract static class PreProcessor {
+        public String toCode(int indent) {
+            return toCode(indent, DEFAULT_TAB_SIZE, false);
+        }
+
+        public abstract String toCode(int indent, int tabSize, boolean inline);
+    }
+
+    public static class Macro extends PreProcessor {
+        private String name;
+        private List<String> arguments;
+        private SExpression substitute;
+
+        public Macro(String name, List<String> arguments, SExpression substitute) {
+            this.name = name;
+            this.arguments = arguments;
+            this.substitute = substitute;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public List<String> getArguments() {
+            return arguments;
+        }
+
+        public void setArguments(List<String> arguments) {
+            this.arguments = arguments;
+        }
+
+        public SExpression getSubstitute() {
+            return substitute;
+        }
+
+        public void setSubstitute(SExpression substitute) {
+            this.substitute = substitute;
+        }
+
+        private SExpression findAndReplace(SExpression current, List<SExpression> substitutions) {
+            switch (current) {
+                case Identifier id -> {
+                    var argumentIndex = arguments.indexOf(id.getName());
+
+                    if (argumentIndex != -1)
+                        return substitutions.get(argumentIndex).deepCopy();
+                    else
+                        return id;
+                }
+
+                case Call call -> {
+                    return new Call(
+                            findAndReplace(call.subject, substitutions),
+                            call.arguments.stream()
+                                    .map(e -> findAndReplace(e, substitutions))
+                                    .toList()
+                    );
+                }
+
+                case ExpressionList list -> {
+                    return new ExpressionList(list.expressions.stream()
+                            .map(e -> findAndReplace(e, substitutions))
+                            .toList());
+                }
+
+                default -> {
+                    return current;
+                }
+            }
+        }
+
+        public SExpression apply(List<SExpression> args) {
+            if (arguments.size() != args.size()) {
+                return null;
+            }
+
+            return findAndReplace(substitute.deepCopy(), args);
+        }
+
+        @Override
+        public String toCode(int indent, int tabSize, boolean inline) {
+            return addIndent(indent, inline) + "(#def " + name + " (" + String.join(" ", arguments) + ") \n"
+                    + addIndent(indent + tabSize, false) + substitute.toCode(indent, tabSize, inline) + ")";
+        }
+    }
+
+
+    // SExpressions
+
     public abstract static class SExpression {
+        public abstract SExpression deepCopy();
+
         public String toCode(int indent) {
             return toCode(indent, DEFAULT_TAB_SIZE, false);
         }
@@ -63,6 +220,11 @@ public abstract class LispAST {
         @Override
         public String toString() {
             return "Void";
+        }
+
+        @Override
+        public SExpression deepCopy() {
+            return new Void();
         }
 
         public String toCode(int indent, int tabSize, boolean inline) {
@@ -104,6 +266,11 @@ public abstract class LispAST {
                     "\n}";
         }
 
+        @Override
+        public SExpression deepCopy() {
+            return new Identifier(name);
+        }
+
         public String toCode(int indent, int tabSize, boolean inline) {
             return addIndent(indent, inline) + name;
         }
@@ -141,6 +308,11 @@ public abstract class LispAST {
             return "StringExpression{\n" +
                     "value='" + value + '\'' +
                     "\n}";
+        }
+
+        @Override
+        public SExpression deepCopy() {
+            return new StringExpression(value);
         }
 
         public String toCode(int indent, int tabSize, boolean inline) {
@@ -182,6 +354,11 @@ public abstract class LispAST {
                     "\n}";
         }
 
+        @Override
+        public SExpression deepCopy() {
+            return new Operator(type);
+        }
+
         public String toCode(int indent, int tabSize, boolean inline) {
             return addIndent(indent, inline) + type;
         }
@@ -219,6 +396,11 @@ public abstract class LispAST {
             return "Double{\n" +
                     "number=" + number +
                     "\n}";
+        }
+
+        @Override
+        public SExpression deepCopy() {
+            return new DoubleValue(number);
         }
 
         public String toCode(int indent, int tabSize, boolean inline) {
@@ -260,6 +442,11 @@ public abstract class LispAST {
                     "\n}";
         }
 
+        @Override
+        public SExpression deepCopy() {
+            return new IntegerValue(number);
+        }
+
         public String toCode(int indent, int tabSize, boolean inline) {
             return addIndent(indent, inline) + number;
         }
@@ -297,6 +484,11 @@ public abstract class LispAST {
             return "BooleanValue{" +
                     "value=" + value +
                     '}';
+        }
+
+        @Override
+        public SExpression deepCopy() {
+            return new BooleanValue(value);
         }
 
         public String toCode(int indent, int tabSize, boolean inline) {
@@ -347,6 +539,13 @@ public abstract class LispAST {
                     "subject='" + subject + '\'' +
                     ", \narguments=" + arguments +
                     "\n}";
+        }
+
+        @Override
+        public SExpression deepCopy() {
+            return new Call(subject.deepCopy(), arguments.stream()
+                    .map(SExpression::deepCopy)
+                    .toList());
         }
 
         public String toCode(int indent, int tabSize, boolean inline) {
@@ -406,15 +605,21 @@ public abstract class LispAST {
                     "\n}";
         }
 
+        @Override
+        public SExpression deepCopy() {
+            return new ExpressionList(expressions.stream()
+                    .map(SExpression::deepCopy)
+                    .toList());
+        }
+
         public String toCode(int indent, int tabSize, boolean inline) {
             if (expressions.isEmpty()) {
-                return (inline ? "" : " ".repeat(indent)) + "[]";
+                return addIndent(indent, inline) + "[]";
             } else {
-                return (inline ? "" : " ".repeat(indent)) + "[\n"
+                return addIndent(indent, inline) + "[\n"
                         + expressions.stream()
                         .map(e -> e.toCode(indent + tabSize, tabSize, false))
-                        .collect(Collectors.joining(",\n"))
-                        + '\n' + " ".repeat(indent) + ']';
+                        .collect(Collectors.joining(",\n")) + ']';
             }
         }
     }
@@ -459,11 +664,16 @@ public abstract class LispAST {
         private final Root root;
 
         private RootBuilder() {
-            this.root = new Root(new ArrayList<>());
+            this.root = new Root(new ArrayList<>(), new ArrayList<>());
         }
 
         public static RootBuilder builder() {
             return new RootBuilder();
+        }
+
+        public RootBuilder add(PreProcessor preProcessor) {
+            root.preProcessors.add(preProcessor);
+            return this;
         }
 
         @Override
@@ -732,7 +942,28 @@ public abstract class LispAST {
     }
 
     public static Root visitRoot(lispParser.RootContext rootContext) {
-        return new Root(rootContext.sExpression().stream().map(LispAST::visitSExpression).toList());
+        return new Root(
+                rootContext.preprocessor().stream()
+                        .map(LispAST::visitPreProcessor)
+                        .toList(),
+                rootContext.sExpression().stream()
+                        .map(LispAST::visitSExpression)
+                        .toList()
+        );
+    }
+
+    public static PreProcessor visitPreProcessor(lispParser.PreprocessorContext preprocessorContext) {
+        if (preprocessorContext instanceof lispParser.MacroContext macroContext) {
+            return new Macro(
+                    macroContext.name.getText(),
+                    macroContext.args.stream()
+                            .map(Token::getText)
+                            .toList(),
+                    visitSExpression(macroContext.substitute)
+            );
+        }
+
+        return null;
     }
 
     public static SExpression visitSExpression(lispParser.SExpressionContext expressionContext) {
@@ -776,33 +1007,14 @@ public abstract class LispAST {
         throw new LispAST.ParseError(msg);
     }
 
-    private static void validateExpression(Token token, SExpression expression) {
-        if (expression instanceof Identifier id) {
-            if (!SpellConverter.isIdentifierValid(id)) {
-                throwAtToken(token, String.format("unrecognized function '%s'", id.getName()));
-            }
-        } else if (expression instanceof Operator op) {
-            if (!SpellConverter.isOperatorValid(op)) {
-                throwAtToken(token, String.format("unrecognized operator '%s'", op.getType()));
-            }
-        }
-    }
-
     public static Call visitCall(lispParser.CallContext callContext) {
         var subject = visitSExpression(callContext.subject);
-
-        // Verify trick exists
-        validateExpression(callContext.subject.start, subject);
 
         return new Call(
                 subject,
                 callContext.sExpression().stream()
                         .skip(1)
-                        .map(expressionContext -> {
-                            var expr = visitSExpression(expressionContext);
-                            validateExpression(expressionContext.start, expr);
-                            return expr;
-                        })
+                        .map(LispAST::visitSExpression)
                         .toList()
         );
     }

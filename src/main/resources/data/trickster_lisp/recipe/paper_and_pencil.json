@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#/",
+    " C"
+  ],
+  "key": {
+    "#": {
+      "item": "minecraft:paper"
+    },
+    "/": {
+      "item": "minecraft:stick"
+    },
+    "C": {
+      "tag": "minecraft:coals"
+    }
+  },
+  "result": {
+    "id": "trickster_lisp:paper_and_pencil",
+    "count": 1
+  }
+}

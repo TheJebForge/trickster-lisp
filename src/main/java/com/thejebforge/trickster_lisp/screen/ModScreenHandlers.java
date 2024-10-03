@@ -9,8 +9,11 @@ import net.minecraft.screen.ScreenHandlerType;
 public class ModScreenHandlers {
     public static final ScreenHandlerType<TranspilerScreenHandler> TRANSPILER =
         new ScreenHandlerType<>(TranspilerScreenHandler::new, FeatureSet.empty());
+    public static final ScreenHandlerType<PaperAndPencilScreenHandler> PAPER_AND_PENCIL =
+            new ScreenHandlerType<>(PaperAndPencilScreenHandler::new, FeatureSet.empty());
 
     public static void register() {
         Registry.register(Registries.SCREEN_HANDLER, TricksterLISP.id("transpiler"), TRANSPILER);
+        Registry.register(Registries.SCREEN_HANDLER, TricksterLISP.id("paper_and_pencil"), PAPER_AND_PENCIL);
     }
 }

@@ -28,6 +28,18 @@ public interface lispListener extends ParseTreeListener {
 	 */
 	void exitSExpression(lispParser.SExpressionContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code macro}
+	 * labeled alternative in {@link lispParser#preprocessor}.
+	 * @param ctx the parse tree
+	 */
+	void enterMacro(lispParser.MacroContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code macro}
+	 * labeled alternative in {@link lispParser#preprocessor}.
+	 * @param ctx the parse tree
+	 */
+	void exitMacro(lispParser.MacroContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link lispParser#call}.
 	 * @param ctx the parse tree
 	 */
