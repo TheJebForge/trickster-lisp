@@ -3,13 +3,13 @@
 	"id": "trickster_lisp",
 	"version": "${version}",
 	"name": "Trickster LISP",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "LISP Transpiler for Trickster mod",
 	"authors": [
-		"Me!"
+		"TheJebForge"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://modrinth.com/mod/trickster-lisp",
+		"sources": "https://github.com/TheJebForge/trickster-lisp"
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/trickster_lisp/icon.png",
@@ -35,9 +35,6 @@
 		"minecraft": "~1.21.1",
 		"java": ">=21",
 		"fabric-api": "*",
-		"trickster": ">=2.0.0-alpha.36"
-	},
-	"suggests": {
-		"another-mod": "*"
+		"trickster": ">=2.0.0-alpha.37"
 	}
 }
