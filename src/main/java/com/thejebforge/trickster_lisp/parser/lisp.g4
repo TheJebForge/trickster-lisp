@@ -12,6 +12,7 @@ sExpression :
     | IDENTIFIER
     | call
     | list;
+//    | map;
 
 preprocessor :
     '(' '#def' name=IDENTIFIER '(' args+=IDENTIFIER* ')' substitute=sExpression ')' # macro;
@@ -19,6 +20,9 @@ preprocessor :
 call : '(' subject=sExpression args+=sExpression* ')';
 
 list : '[' sExpression? (',' sExpression)* ']';
+
+//mapEntry : key=sExpression ':' value=sExpression;
+//map : '{' mapEntry? (',' mapEntry)* '}';
 
 VOID : 'void';
 BOOLEAN : 'true' | 'false';

@@ -195,7 +195,7 @@ public abstract class LispAST {
         @Override
         public String toCode(int indent, int tabSize, boolean inline) {
             return addIndent(indent, inline) + "(#def " + name + " (" + String.join(" ", arguments) + ") \n"
-                    + addIndent(indent + tabSize, false) + substitute.toCode(indent, tabSize, inline) + ")";
+                    + substitute.toCode(indent + tabSize, tabSize, inline) + ")";
         }
     }
 
