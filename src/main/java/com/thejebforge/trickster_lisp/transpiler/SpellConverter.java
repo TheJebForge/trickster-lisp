@@ -69,7 +69,7 @@ public abstract class SpellConverter {
         TricksterLISP.LOGGER.info(spell.toString());
 
         return LispAST.RootBuilder.builder()
-                .add(simplify(fragmentToExpression(spell)))
+                .add(fragmentToExpression(spell))
                 .build()
                 .simplifyRoot();
     }
@@ -86,27 +86,6 @@ public abstract class SpellConverter {
         } catch (ClassCastException ignored) {}
 
         throw new IllegalArgumentException("Unknown fragment type: " + frag.getClass().getName());
-    }
-
-    private static LispAST.SExpression simplify(LispAST.SExpression expr) {
-        if (expr instanceof LispAST.Call call
-                && call.getArguments().isEmpty()
-                && !(call.getSubject() instanceof LispAST.Call)) {
-            expr = call.getSubject();
-        }
-
-        if (expr instanceof LispAST.Call call) {
-            call.setSubject(simplify(call.getSubject()));
-            call.setArguments(call.getArguments().stream()
-                    .map(SpellConverter::simplify)
-                    .toList());
-        } else if (expr instanceof LispAST.ExpressionList list) {
-            list.setExpressions(list.getExpressions().stream()
-                    .map(SpellConverter::simplify)
-                    .toList());
-        }
-
-        return expr;
     }
 
     public static boolean isIdentifierValid(LispAST.Identifier id) {

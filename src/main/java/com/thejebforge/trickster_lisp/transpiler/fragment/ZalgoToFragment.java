@@ -10,7 +10,7 @@ public class ZalgoToFragment implements ASTToFragment {
     public Fragment apply(LispAST.SExpression expression) {
         var call = (LispAST.Call) expression;
 
-        var zalgo = CallUtils.getStringArgument(call, 0);
+        var zalgo = CallUtils.getIntegerArgument(call, 0);
 
         return new ZalgoFragment(zalgo);
     }

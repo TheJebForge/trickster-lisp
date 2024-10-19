@@ -97,7 +97,7 @@ public class TranspilerScreenHandler extends ScreenHandler {
 
             saveCode(msg.code);
 
-            if (otherHandStack == null) {
+            if (otherHandStack == null || otherHandStack.isEmpty()) {
                 validationText.set("No item in other hand is found");
                 return;
             }

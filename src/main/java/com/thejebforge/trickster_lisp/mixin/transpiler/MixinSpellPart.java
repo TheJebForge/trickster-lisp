@@ -81,6 +81,10 @@ public class MixinSpellPart implements FragmentToAST {
                                             : new LispAST.Identifier(id.getPath())
                                     : new LispAST.Identifier(id.toString());
 
+            if (part.subParts.isEmpty()) {
+                return idString;
+            }
+
             var builder = LispAST.CallBuilder.builder(idString);
             part.getSubParts().forEach(subpart -> {
                 builder.add(spellPartToExpression(subpart));
@@ -96,8 +100,7 @@ public class MixinSpellPart implements FragmentToAST {
             }
 
             if (part.getSubParts().isEmpty()) {
-                return LispAST.CallBuilder.builder(subject)
-                        .build();
+                return subject;
             } else {
                 var builder = LispAST.CallBuilder.builder(subject);
 

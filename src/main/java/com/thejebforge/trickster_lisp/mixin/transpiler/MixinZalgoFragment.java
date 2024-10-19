@@ -12,7 +12,7 @@ public class MixinZalgoFragment implements FragmentToAST {
     @Override
     public Optional<LispAST.SExpression> trickster_lisp$convert() {
         return Optional.ofNullable(LispAST.CallBuilder.builder("zalgo")
-                .addString(((ZalgoFragment) (Object) this).string())
+                .addNumber(((ZalgoFragment) (Object) this).index())
                 .build());
     }
 }

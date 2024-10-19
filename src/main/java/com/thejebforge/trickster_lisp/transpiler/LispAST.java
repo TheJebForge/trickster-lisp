@@ -100,7 +100,7 @@ public abstract class LispAST {
             return preProcessors.stream()
                             .map(p -> p.toCode(0, tabSize, false))
                             .collect(Collectors.joining("\n"))
-                    + "\n\n" +
+                    + (!preProcessors.isEmpty() ? "\n\n" : "") +
                     expressions.stream()
                             .map(e -> e.toCode(0, tabSize, false))
                             .collect(Collectors.joining("\n"));
