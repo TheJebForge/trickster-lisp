@@ -1,13 +1,14 @@
 package com.thejebforge.trickster_lisp.screen;
 
+import com.thejebforge.trickster_lisp.TricksterLISP;
 import com.thejebforge.trickster_lisp.item.ModItems;
 import com.thejebforge.trickster_lisp.item.component.ModComponents;
 import com.thejebforge.trickster_lisp.item.component.RawCodeComponent;
 import com.thejebforge.trickster_lisp.transpiler.LispAST;
 import com.thejebforge.trickster_lisp.transpiler.SpellConverter;
 import com.thejebforge.trickster_lisp.transpiler.util.CallUtils;
-import dev.enjarai.trickster.item.component.SpellComponent;
-import dev.enjarai.trickster.spell.SpellPart;
+import dev.enjarai.trickster.item.component.FragmentComponent;
+import dev.enjarai.trickster.spell.Fragment;
 import io.wispforest.owo.client.screens.SyncedProperty;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -24,7 +25,7 @@ public class TranspilerScreenHandler extends ScreenHandler {
     public ItemStack otherHandStack;
 
     public final SyncedProperty<String> validationText = createProperty(String.class, "");
-    public final SyncedProperty<SpellPart> spell = createProperty(SpellPart.class, SpellPart.ENDEC, null);
+    public final SyncedProperty<Fragment> spell = createProperty(Fragment.class, Fragment.ENDEC, null);
     public final SyncedProperty<String> initialRawCode = createProperty(String.class, "");
 
     public Consumer<String> replaceCodeCallback;
@@ -39,10 +40,10 @@ public class TranspilerScreenHandler extends ScreenHandler {
         this.otherHandStack = otherHandStack;
 
         if (otherHandStack != null) {
-            var spell = otherHandStack.get(dev.enjarai.trickster.item.component.ModComponents.SPELL);
+            var spell = otherHandStack.get(dev.enjarai.trickster.item.component.ModComponents.FRAGMENT);
 
             if (spell != null && !spell.closed()) {
-                SpellComponent.getSpellPart(otherHandStack).ifPresent(this.spell::set);
+                this.spell.set(spell.value());
             }
         }
 
@@ -88,9 +89,7 @@ public class TranspilerScreenHandler extends ScreenHandler {
             }
         });
 
-        addServerboundMessage(SaveCode.class, msg -> {
-            saveCode(msg.code);
-        });
+        addServerboundMessage(SaveCode.class, msg -> saveCode(msg.code));
 
         addServerboundMessage(StoreCode.class, msg -> {
             validationText.set("");
@@ -110,9 +109,11 @@ public class TranspilerScreenHandler extends ScreenHandler {
 
             try {
                 var ast = LispAST.parse(msg.code);
-                var spellPart = SpellConverter.astToSpell(ast);
+                var spellPart = SpellConverter.astToFinalFragment(ast);
 
-                SpellComponent.setSpellPart(otherHandStack, spellPart, Optional.empty(), false);
+                TricksterLISP.LOGGER.info(spellPart.asText().getString());
+
+                FragmentComponent.setValue(otherHandStack, spellPart, Optional.empty(), false);
                 this.spell.set(spellPart);
 
                 validationText.set("SUCCESS");

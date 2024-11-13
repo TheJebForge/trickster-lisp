@@ -2,19 +2,19 @@ package com.thejebforge.trickster_lisp.mixin.transpiler;
 
 import com.thejebforge.trickster_lisp.transpiler.LispAST;
 import com.thejebforge.trickster_lisp.transpiler.fragment.FragmentToAST;
-import dev.enjarai.trickster.spell.fragment.DimensionFragment;
+import dev.enjarai.trickster.spell.Pattern;
 import org.spongepowered.asm.mixin.Mixin;
 
 import java.util.Optional;
 
-@Mixin(DimensionFragment.class)
-public class MixinDimensionFragment implements FragmentToAST {
+@Mixin(Pattern.class)
+public class MixinPattern implements FragmentToAST {
     @Override
     public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
-        var id = ((DimensionFragment) (Object) this).world().getValue().toString();
+        var pattern = ((Pattern) (Object) this);
 
-        return Optional.ofNullable(LispAST.CallBuilder.builder("dimension")
-                .addString(id)
+        return Optional.of(LispAST.CallBuilder.builder("pattern_literal")
+                .addNumber(pattern.toInt())
                 .build());
     }
 }

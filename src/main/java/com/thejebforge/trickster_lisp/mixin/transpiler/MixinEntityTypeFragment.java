@@ -11,7 +11,7 @@ import java.util.Optional;
 @Mixin(EntityTypeFragment.class)
 public class MixinEntityTypeFragment implements FragmentToAST {
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
         var id = Registries.ENTITY_TYPE.getId(((EntityTypeFragment) (Object) this).entityType());
 
         return Optional.ofNullable(LispAST.CallBuilder.builder("entity_type")

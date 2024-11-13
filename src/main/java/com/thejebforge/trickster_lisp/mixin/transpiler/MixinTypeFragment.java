@@ -11,7 +11,7 @@ import java.util.Optional;
 @Mixin(TypeFragment.class)
 public class MixinTypeFragment implements FragmentToAST {
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
         var id = FragmentType.REGISTRY.getId(((TypeFragment) (Object) this).typeType());
 
         return Optional.ofNullable(LispAST.CallBuilder.builder("type")

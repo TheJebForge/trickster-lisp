@@ -15,7 +15,7 @@ import static com.thejebforge.trickster_lisp.transpiler.SpellConverter.OPERATOR_
 @Mixin(PatternGlyph.class)
 public class MixinPatternGlyph implements FragmentToAST {
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
         var pattern = ((PatternGlyph) (Object) this).pattern();
 
         var trick = Tricks.lookup(pattern);

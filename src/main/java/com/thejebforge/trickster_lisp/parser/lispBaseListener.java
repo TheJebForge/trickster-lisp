@@ -1,4 +1,4 @@
-// Generated from D:/Projects/trickster-lisp/src/main/java/com/thejebforge/trickster_lisp/parser/lisp.g4 by ANTLR 4.13.1
+// Generated from D:/Projects/trickster-lisp/src/main/java/com/thejebforge/trickster_lisp/parser/lisp.g4 by ANTLR 4.13.2
 package com.thejebforge.trickster_lisp.parser;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -72,6 +72,30 @@ public class lispBaseListener implements lispListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitList(lispParser.ListContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMapEntry(lispParser.MapEntryContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMapEntry(lispParser.MapEntryContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMap(lispParser.MapContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMap(lispParser.MapContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

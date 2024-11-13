@@ -9,6 +9,7 @@ import dev.enjarai.trickster.spell.Fragment;
 import dev.enjarai.trickster.spell.Pattern;
 import dev.enjarai.trickster.spell.PatternGlyph;
 import dev.enjarai.trickster.spell.SpellPart;
+import dev.enjarai.trickster.spell.fragment.VoidFragment;
 import dev.enjarai.trickster.spell.trick.Trick;
 import dev.enjarai.trickster.spell.trick.Tricks;
 import net.minecraft.util.Identifier;
@@ -40,6 +41,21 @@ public abstract class SpellConverter {
 
     public static final String LOAD_ARGUMENT_PART = "load_argument_";
 
+    public static final Set<String> FRAGMENT_IDS = new HashSet<>() {{
+        add("block_type");
+        add("dimension");
+        add("entity");
+        add("entity_type");
+        add("item_type");
+        add("slot");
+        add("pattern");
+        add("pattern_literal");
+        add("type");
+        add("vec");
+        add("void");
+        add("zalgo");
+    }};
+
     public static final Map<String, ASTToFragment> CALL_ID_CONVERTERS = new HashMap<>(){{
         put("block_type", new BlockTypeToFragment());
         put("dimension", new DimensionToFragment());
@@ -48,6 +64,7 @@ public abstract class SpellConverter {
         put("item_type", new ItemTypeToFragment());
         put("slot", new SlotToFragment());
         put("pattern", new PatternToFragment());
+        put("pattern_literal", new PatternLiteralToFragment());
         put("type", new TypeToFragment());
         put("vec", new VectorToFragment());
         put("void", new VoidToFragment());
@@ -62,14 +79,35 @@ public abstract class SpellConverter {
         put(LispAST.DoubleValue.class, new NumberToFragment());
         put(LispAST.BooleanValue.class, new BooleanToFragment());
         put(LispAST.ExpressionList.class, new ListToFragment());
+        put(LispAST.MapExpression.class, new MapToFragment());
         put(LispAST.Void.class, new VoidToFragment());
+        put(LispAST.Empty.class, new EmptyToFragment());
     }};
 
-    public static LispAST.Root spellToAST(SpellPart spell) {
-        TricksterLISP.LOGGER.info(spell.toString());
+    public static LispAST.SExpression wrapExpressionIfNeeded(Fragment spell) {
+        var expression = fragmentToExpression(spell);
+
+        if (spell instanceof SpellPart) {
+            if (expression instanceof LispAST.Call call) {
+                if (call.getSubject() instanceof LispAST.Identifier id
+                    && FRAGMENT_IDS.contains(id.getName())) {
+                    return LispAST.CallBuilder.builder(expression).build();
+                }
+
+                return expression;
+            }
+
+            return LispAST.CallBuilder.builder(expression).build();
+        }
+
+        return expression;
+    }
+
+    public static LispAST.Root spellToAST(Fragment spell) {
+        TricksterLISP.LOGGER.info(spell.asText().getString());
 
         return LispAST.RootBuilder.builder()
-                .add(fragmentToExpression(spell))
+                .add(wrapExpressionIfNeeded(spell))
                 .build()
                 .simplifyRoot();
     }
@@ -151,15 +189,14 @@ public abstract class SpellConverter {
         } else if (expr instanceof LispAST.Operator op) {
             var underlyingId = new LispAST.Identifier(OPERATOR_MAPPING.inverse().get(op.getType()));
             return new SpellPart(new PatternGlyph(idToTrickPattern(expr, underlyingId)));
-        } else if (expr instanceof LispAST.Call mainCall && mainCall.getSubject() instanceof LispAST.Call childCall) {
-            TricksterLISP.LOGGER.info("Got inner circle! main: {}, child: {}", mainCall, childCall);
-            return new SpellPart(
-                    wrap(expressionToFragment(childCall)),
-                    mainCall.getArguments().stream()
-                            .map(SpellConverter::expressionToFragment)
-                            .map(SpellConverter::wrap)
-                            .toList()
-            );
+//        } else if (expr instanceof LispAST.Call mainCall && mainCall.getSubject() instanceof LispAST.Call childCall) {
+//            return new SpellPart(
+//                    expressionToFragment(childCall),
+//                    mainCall.getArguments().stream()
+//                            .map(SpellConverter::expressionToFragment)
+//                            .map(SpellConverter::wrap)
+//                            .toList()
+//            );
         } else if (expr instanceof LispAST.Call call) {
             return new SpellPart(
                     expressionToFragment(call.getSubject()),
@@ -179,15 +216,15 @@ public abstract class SpellConverter {
         } else return (SpellPart) fragment;
     }
 
-    public static SpellPart astToSpell(LispAST.Root root) {
+    public static Fragment astToFinalFragment(LispAST.Root root) {
         root = root.runPreProcessors();
 
         if (root.expressions().isEmpty()) {
-            return new SpellPart();
+            return new VoidFragment();
         } else if (root.expressions().size() == 1) {
             var expression = root.expressions().getFirst();
 
-            return wrap(expressionToFragment(expression));
+            return expressionToFragment(expression);
         } else {
             return new SpellPart(
                     new PatternGlyph(),

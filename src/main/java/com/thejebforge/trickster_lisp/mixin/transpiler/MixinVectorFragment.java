@@ -10,7 +10,7 @@ import java.util.Optional;
 @Mixin(VectorFragment.class)
 public class MixinVectorFragment implements FragmentToAST {
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
         var vector = ((VectorFragment) (Object) this).vector();
 
         return Optional.ofNullable(LispAST.CallBuilder.builder("vec")

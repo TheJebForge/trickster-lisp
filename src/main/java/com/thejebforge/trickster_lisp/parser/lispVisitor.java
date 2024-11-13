@@ -1,4 +1,4 @@
-// Generated from D:/Projects/trickster-lisp/src/main/java/com/thejebforge/trickster_lisp/parser/lisp.g4 by ANTLR 4.13.1
+// Generated from D:/Projects/trickster-lisp/src/main/java/com/thejebforge/trickster_lisp/parser/lisp.g4 by ANTLR 4.13.2
 package com.thejebforge.trickster_lisp.parser;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -41,4 +41,16 @@ public interface lispVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitList(lispParser.ListContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link lispParser#mapEntry}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMapEntry(lispParser.MapEntryContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link lispParser#map}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMap(lispParser.MapContext ctx);
 }

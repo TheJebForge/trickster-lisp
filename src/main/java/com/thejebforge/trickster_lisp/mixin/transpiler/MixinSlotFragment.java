@@ -10,19 +10,24 @@ import java.util.Optional;
 @Mixin(SlotFragment.class)
 public class MixinSlotFragment implements FragmentToAST {
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
         var fragment = ((SlotFragment) (Object) this);
 
         if (fragment.source().isPresent()) {
             var blockPos = fragment.source().get();
 
-            return Optional.ofNullable(LispAST.CallBuilder.builder("slot")
-                    .addNumber(fragment.slot())
-                    .addCall("vec", call -> call
-                            .addNumber(blockPos.getX())
-                            .addNumber(blockPos.getY())
-                            .addNumber(blockPos.getZ()))
-                    .build());
+            return Optional.ofNullable((LispAST.SExpression) blockPos.map(
+                    bp -> LispAST.CallBuilder.builder("slot")
+                            .addNumber(fragment.slot())
+                            .addCall("vec", call -> call
+                                    .addNumber(bp.getX())
+                                    .addNumber(bp.getY())
+                                    .addNumber(bp.getZ()))
+                            .build(),
+                    uuid -> LispAST.CallBuilder.builder("slot")
+                            .addNumber(fragment.slot())
+                            .addString(uuid.toString())
+            ));
         } else {
             return Optional.ofNullable(LispAST.CallBuilder.builder("slot")
                     .addNumber(fragment.slot())

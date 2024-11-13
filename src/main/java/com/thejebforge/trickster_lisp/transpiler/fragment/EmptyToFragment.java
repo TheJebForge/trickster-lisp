@@ -2,13 +2,11 @@ package com.thejebforge.trickster_lisp.transpiler.fragment;
 
 import com.thejebforge.trickster_lisp.transpiler.LispAST;
 import dev.enjarai.trickster.spell.Fragment;
-import dev.enjarai.trickster.spell.fragment.BooleanFragment;
+import dev.enjarai.trickster.spell.PatternGlyph;
 
-public class BooleanToFragment implements ASTToFragment {
+public class EmptyToFragment implements ASTToFragment {
     @Override
     public Fragment apply(LispAST.SExpression expression) {
-        var bool = (LispAST.BooleanValue) expression;
-
-        return BooleanFragment.of(bool.getValue());
+        return new PatternGlyph();
     }
 }

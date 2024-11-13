@@ -4,10 +4,8 @@ import com.thejebforge.trickster_lisp.transpiler.LispAST;
 import com.thejebforge.trickster_lisp.transpiler.fragment.FragmentToAST;
 import dev.enjarai.trickster.spell.PatternGlyph;
 import dev.enjarai.trickster.spell.SpellPart;
-import dev.enjarai.trickster.spell.trick.Trick;
 import dev.enjarai.trickster.spell.trick.Tricks;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 
 import java.util.*;
@@ -18,13 +16,13 @@ import static com.thejebforge.trickster_lisp.transpiler.SpellConverter.OPERATOR_
 @Mixin(SpellPart.class)
 public class MixinSpellPart implements FragmentToAST {
     @Unique
-    private LispAST.SExpression spellPartToExpression(SpellPart part) {
+    private LispAST.SExpression spellPartToExpression(SpellPart part, boolean preserveSpellParts) {
         if (part.getGlyph() instanceof PatternGlyph pattern) {
             if (pattern.pattern().isEmpty()) {
                 var builder = LispAST.CallBuilder.builder();
 
                 part.getSubParts().forEach(subpart -> {
-                    var potentialAST = ((FragmentToAST) (Object) subpart).trickster_lisp$convert();
+                    var potentialAST = ((FragmentToAST) (Object) subpart).trickster_lisp$convert(preserveSpellParts);
 
                     if (potentialAST.isPresent()) {
                         builder.add(potentialAST.get());
@@ -62,9 +60,9 @@ public class MixinSpellPart implements FragmentToAST {
                         && ifElsePart.subParts.get(2).glyph instanceof SpellPart falseCase
                 ) {
                     return LispAST.CallBuilder.builder("if")
-                            .add(spellPartToExpression(ifElsePart.subParts.getFirst()))
-                            .add(spellPartToExpression(trueCase))
-                            .add(spellPartToExpression(falseCase))
+                            .add(spellPartToExpression(ifElsePart.subParts.getFirst(), preserveSpellParts))
+                            .add(spellPartToExpression(trueCase, preserveSpellParts))
+                            .add(spellPartToExpression(falseCase, preserveSpellParts))
                             .build();
                 }
             }
@@ -86,27 +84,23 @@ public class MixinSpellPart implements FragmentToAST {
             }
 
             var builder = LispAST.CallBuilder.builder(idString);
-            part.getSubParts().forEach(subpart -> {
-                builder.add(spellPartToExpression(subpart));
-            });
+            part.getSubParts().forEach(subpart -> builder.add(spellPartToExpression(subpart, preserveSpellParts)));
             return builder.build();
         } else {
-            LispAST.SExpression subject = new LispAST.Void();
+            LispAST.SExpression subject = new LispAST.Empty();
 
-            var potentialAST = ((FragmentToAST) part.glyph).trickster_lisp$convert();
+            var potentialAST = ((FragmentToAST) part.glyph).trickster_lisp$convert(preserveSpellParts);
 
             if (potentialAST.isPresent()) {
                 subject = potentialAST.get();
             }
 
-            if (part.getSubParts().isEmpty()) {
+            if (part.getSubParts().isEmpty() && !preserveSpellParts) {
                 return subject;
             } else {
                 var builder = LispAST.CallBuilder.builder(subject);
 
-                part.getSubParts().forEach(subpart -> {
-                    builder.add(spellPartToExpression(subpart));
-                });
+                part.getSubParts().forEach(subpart -> builder.add(spellPartToExpression(subpart, preserveSpellParts)));
 
                 return builder.build();
             }
@@ -114,7 +108,7 @@ public class MixinSpellPart implements FragmentToAST {
     }
 
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
-        return Optional.ofNullable(spellPartToExpression((SpellPart) (Object) this));
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
+        return Optional.ofNullable(spellPartToExpression((SpellPart) (Object) this, preserveSpellParts));
     }
 }

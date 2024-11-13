@@ -10,7 +10,7 @@ import java.util.Optional;
 @Mixin(BooleanFragment.class)
 public class MixinBooleanFragment implements FragmentToAST {
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
-        return Optional.of(new LispAST.BooleanValue(((BooleanFragment) (Object) this).bool()));
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
+        return Optional.of(new LispAST.BooleanValue(((BooleanFragment) (Object) this).bool));
     }
 }

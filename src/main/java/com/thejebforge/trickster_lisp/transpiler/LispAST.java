@@ -18,7 +18,7 @@ public abstract class LispAST {
         public Root simplifyRoot() {
             if (expressions.size() == 1
                     && expressions.getFirst() instanceof Call call
-                    && call.subject instanceof Void
+                    && call.subject instanceof Empty
             ) {
                 return new Root(preProcessors, call.arguments);
             } else {
@@ -229,6 +229,22 @@ public abstract class LispAST {
 
         public String toCode(int indent, int tabSize, boolean inline) {
             return addIndent(indent, inline) + "void";
+        }
+    }
+
+    public static class Empty extends SExpression {
+        @Override
+        public String toString() {
+            return "Empty";
+        }
+
+        @Override
+        public SExpression deepCopy() {
+            return new Empty();
+        }
+
+        public String toCode(int indent, int tabSize, boolean inline) {
+            return addIndent(indent, inline) + "_";
         }
     }
 
@@ -616,10 +632,62 @@ public abstract class LispAST {
             if (expressions.isEmpty()) {
                 return addIndent(indent, inline) + "[]";
             } else {
-                return addIndent(indent, inline) + "[\n"
+                return addIndent(indent, inline) + "[" + (expressions.size() == 1 ? "" : '\n')
                         + expressions.stream()
-                        .map(e -> e.toCode(indent + tabSize, tabSize, false))
+                        .map(e -> e.toCode(indent + tabSize, tabSize, expressions.size() == 1))
                         .collect(Collectors.joining(",\n")) + ']';
+            }
+        }
+    }
+
+    public static class MapExpression extends SExpression {
+        private HashMap<SExpression, SExpression> expressionMap;
+
+        public MapExpression(HashMap<SExpression, SExpression> expressionMap) {
+            this.expressionMap = expressionMap;
+        }
+
+        public HashMap<SExpression, SExpression> getExpressionMap() {
+            return expressionMap;
+        }
+
+        public void setExpressionMap(HashMap<SExpression, SExpression> expressionMap) {
+            this.expressionMap = expressionMap;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MapExpression that)) return false;
+            return Objects.equals(expressionMap, that.expressionMap);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(expressionMap);
+        }
+
+        @Override
+        public SExpression deepCopy() {
+            var newMap = new HashMap<SExpression, SExpression>();
+
+            expressionMap.forEach((k, v) -> newMap.put(k.deepCopy(), v.deepCopy()));
+
+            return new MapExpression(newMap);
+        }
+
+        @Override
+        public String toCode(int indent, int tabSize, boolean inline) {
+            if (expressionMap.isEmpty()) {
+                return addIndent(indent, inline) + "{}";
+            } else {
+                return addIndent(indent, inline) + "{" + (expressionMap.size() == 1 ? "" : '\n')
+                        + expressionMap.entrySet().stream()
+                        .map(e ->
+                                e.getKey().toCode(indent + tabSize, tabSize, expressionMap.size() == 1)
+                                        + " : "
+                                        + e.getValue().toCode(indent + tabSize, tabSize, true))
+                        .collect(Collectors.joining(",\n")) + '}';
             }
         }
     }
@@ -657,6 +725,7 @@ public abstract class LispAST {
         }
 
         T addList(Function<ListBuilder, ListBuilder> builder);
+        T addMap(Function<MapBuilder, MapBuilder> builder);
         R build();
     }
 
@@ -676,7 +745,6 @@ public abstract class LispAST {
             return this;
         }
 
-        @Override
         public RootBuilder add(SExpression expression) {
             root.expressions.add(expression);
             return this;
@@ -707,7 +775,6 @@ public abstract class LispAST {
             return this;
         }
 
-        @Override
         public RootBuilder addString(String value) {
             root.expressions.add(new StringExpression(value));
             return this;
@@ -722,6 +789,12 @@ public abstract class LispAST {
         public RootBuilder addList(Function<ListBuilder, ListBuilder> builder) {
             var list = new ExpressionList(new ArrayList<>());
             root.expressions.add(builder.apply(new ListBuilder(list)).build());
+            return this;
+        }
+
+        public RootBuilder addMap(Function<MapBuilder, MapBuilder> builder) {
+            var map = new MapExpression(new HashMap<>());
+            root.expressions.add(builder.apply(new MapBuilder(map)).build());
             return this;
         }
 
@@ -758,10 +831,9 @@ public abstract class LispAST {
         }
 
         public static CallBuilder builder() {
-            return new CallBuilder(new Call(new Void(), new ArrayList<>()));
+            return new CallBuilder(new Call(new Empty(), new ArrayList<>()));
         }
 
-        @Override
         public CallBuilder add(SExpression expression) {
             call.arguments.add(expression);
             return this;
@@ -792,7 +864,6 @@ public abstract class LispAST {
             return this;
         }
 
-        @Override
         public CallBuilder addString(String value) {
             call.arguments.add(new StringExpression(value));
             return this;
@@ -807,6 +878,12 @@ public abstract class LispAST {
         public CallBuilder addList(Function<ListBuilder, ListBuilder> builder) {
             var list = new ExpressionList(new ArrayList<>());
             call.arguments.add(builder.apply(new ListBuilder(list)).build());
+            return this;
+        }
+
+        public CallBuilder addMap(Function<MapBuilder, MapBuilder> builder) {
+            var map = new MapExpression(new HashMap<>());
+            call.arguments.add(builder.apply(new MapBuilder(map)).build());
             return this;
         }
 
@@ -875,8 +952,66 @@ public abstract class LispAST {
             return this;
         }
 
+        public ListBuilder addMap(Function<MapBuilder, MapBuilder> builder) {
+            var map = new MapExpression(new HashMap<>());
+            list.expressions.add(builder.apply(new MapBuilder(map)).build());
+            return this;
+        }
+
         public ExpressionList build() {
             return list;
+        }
+    }
+
+    public static class MapBuilder {
+        private final MapExpression map;
+
+        private MapBuilder(MapExpression map) {
+            this.map = map;
+        }
+
+        public static MapBuilder builder() {
+            return new MapBuilder(new MapExpression(new HashMap<>()));
+        }
+
+        public MapBuilder put(SExpression key, SExpression value) {
+            map.expressionMap.put(key, value);
+            return this;
+        }
+
+        public MapBuilder putIdentifier(String name, SExpression value) {
+            map.expressionMap.put(new Identifier(name), value);
+            return this;
+        }
+
+        public MapBuilder putOperator(String operator, SExpression value) {
+            map.expressionMap.put(new Operator(operator), value);
+            return this;
+        }
+
+        public MapBuilder putNumber(Double number, SExpression value) {
+            map.expressionMap.put(new DoubleValue(number), value);
+            return this;
+        }
+
+        public MapBuilder putNumber(Integer number, SExpression value) {
+            map.expressionMap.put(new IntegerValue(number), value);
+            return this;
+        }
+
+        public MapBuilder putBoolean(Boolean value, SExpression right) {
+            map.expressionMap.put(new BooleanValue(value), right);
+            return this;
+        }
+
+
+        public MapBuilder putString(String value, SExpression right) {
+            map.expressionMap.put(new StringExpression(value), right);
+            return this;
+        }
+
+        public MapExpression build() {
+            return map;
         }
     }
 
@@ -983,6 +1118,8 @@ public abstract class LispAST {
             return new BooleanValue(expressionContext.BOOLEAN().getText().equals("true"));
         } else if (expressionContext.VOID() != null) {
             return new Void();
+        } else if (expressionContext.EMPTY() != null) {
+            return new Empty();
         }
 
         var call = expressionContext.call();
@@ -993,6 +1130,11 @@ public abstract class LispAST {
         var list = expressionContext.list();
         if (list != null) {
             return visitList(list);
+        }
+
+        var map = expressionContext.map();
+        if (map != null) {
+            return visitMap(map);
         }
 
         return null;
@@ -1025,5 +1167,13 @@ public abstract class LispAST {
                         .map(LispAST::visitSExpression)
                         .toList()
         );
+    }
+
+    public static MapExpression visitMap(lispParser.MapContext mapContext) {
+        var map = new HashMap<SExpression, SExpression>();
+
+        mapContext.mapEntry().forEach(entry -> map.put(visitSExpression(entry.key), visitSExpression(entry.value)));
+
+        return new MapExpression(map);
     }
 }

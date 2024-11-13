@@ -10,7 +10,7 @@ import java.util.Optional;
 @Mixin(ZalgoFragment.class)
 public class MixinZalgoFragment implements FragmentToAST {
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
         return Optional.ofNullable(LispAST.CallBuilder.builder("zalgo")
                 .addNumber(((ZalgoFragment) (Object) this).index())
                 .build());

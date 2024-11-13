@@ -10,7 +10,7 @@ import java.util.Optional;
 @Mixin(NumberFragment.class)
 public class MixinNumberFragment implements FragmentToAST {
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert() {
+    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
         return Optional.of(new LispAST.DoubleValue(((NumberFragment) (Object) this).number()));
     }
 }

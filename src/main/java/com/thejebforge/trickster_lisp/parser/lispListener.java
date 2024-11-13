@@ -1,4 +1,4 @@
-// Generated from D:/Projects/trickster-lisp/src/main/java/com/thejebforge/trickster_lisp/parser/lisp.g4 by ANTLR 4.13.1
+// Generated from D:/Projects/trickster-lisp/src/main/java/com/thejebforge/trickster_lisp/parser/lisp.g4 by ANTLR 4.13.2
 package com.thejebforge.trickster_lisp.parser;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -59,4 +59,24 @@ public interface lispListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitList(lispParser.ListContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link lispParser#mapEntry}.
+	 * @param ctx the parse tree
+	 */
+	void enterMapEntry(lispParser.MapEntryContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link lispParser#mapEntry}.
+	 * @param ctx the parse tree
+	 */
+	void exitMapEntry(lispParser.MapEntryContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link lispParser#map}.
+	 * @param ctx the parse tree
+	 */
+	void enterMap(lispParser.MapContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link lispParser#map}.
+	 * @param ctx the parse tree
+	 */
+	void exitMap(lispParser.MapContext ctx);
 }

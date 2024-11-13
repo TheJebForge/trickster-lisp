@@ -3,7 +3,8 @@ grammar lisp;
 root : preprocessor* sExpression* EOF;
 
 sExpression :
-    VOID
+    EMPTY
+    | VOID
     | BOOLEAN
     | OPERATOR
     | INTEGER
@@ -11,8 +12,8 @@ sExpression :
     | STRING
     | IDENTIFIER
     | call
-    | list;
-//    | map;
+    | list
+    | map;
 
 preprocessor :
     '(' '#def' name=IDENTIFIER '(' args+=IDENTIFIER* ')' substitute=sExpression ')' # macro;
@@ -21,9 +22,10 @@ call : '(' subject=sExpression args+=sExpression* ')';
 
 list : '[' sExpression? (',' sExpression)* ']';
 
-//mapEntry : key=sExpression ':' value=sExpression;
-//map : '{' mapEntry? (',' mapEntry)* '}';
+mapEntry : key=sExpression ':' value=sExpression;
+map : '{' mapEntry? (',' mapEntry)* '}';
 
+EMPTY : '_';
 VOID : 'void';
 BOOLEAN : 'true' | 'false';
 INTEGER : [0-9]+;

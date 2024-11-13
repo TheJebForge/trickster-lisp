@@ -32,6 +32,14 @@ and then specifying arguments separated by space.
 You can check **IDs** of tricks in Tom of Tomfoolery, they're written under each trick.
 
 
+You can store fragments into items by having fragment representations as the only contents
+of the transpiler.
+
+
+Fragment representations can be wrapped with parentheses for transpiler to treat them as spells.
+
+;;;;;
+
 There's also a bunch of new functions you can use to create different trickster fragments:
 
 
@@ -40,10 +48,10 @@ There's also a bunch of new functions you can use to create different trickster 
 
 **Boolean Fragments** can be represented with **true** or **false**.
 
-;;;;;
 
 **Dimension Fragments** can be represented with **(dimension "\<id\>")**.
 
+;;;;;
 
 **Entity Fragments** can be represented with 
 
@@ -55,31 +63,51 @@ There's also a bunch of new functions you can use to create different trickster 
 
 **Item Type Fragments** can be represented with **(item_type "\<id\>")**.
 
-;;;;;
 
 **List Fragments** can be represented with square brackets and elements separated with commas, 
 
 like **[ 1, 2, 3 ]**.
 
+;;;;;
 
 **Number Fragments** can be represented with integers and floats, like **123** or **1.23**.
 
 
-**Pattern Fragments** can be represented with 
+**Pattern Fragments** and **Pattern Literals** can be represented with 
 
-**(pattern \<int\>)**, 
+**(pattern \<int\>)** or **(pattern_literal \<int\>)**, 
 
-don't ask me how to obtain those...
+you can usually obtain those by drawing the pattern in scroll and loading it into transpiler.
 
 ;;;;;
 
-**Slot Fragments** can be represented with 
+**Map Fragments** can be represented with curly brackets and key value elements separated with commas,
+
+
+like **{**
+
+**0 : true,**
+
+**1 : false**
+
+**}**.
+
+
+Colon must have space between key and value.
+
+;;;;;
+
+**Slot Fragments** can be represented with
 
 **(slot \<slotIndex\>)**,
 
-or 
+or
 
-**(slot \<slotIndex\> \<vec\>)**.
+**(slot \<slotIndex\> \<vec\>)**,
+
+or
+
+**(slot \<slotIndex\> \<uuid string\>)**.
 
 
 **Type Fragments** can be represented with 
@@ -91,10 +119,12 @@ or
 
 **(vec \<x\> \<y\> \<z\>)**.
 
-
-**Voids** or **Empty Circles** can be represented with **void**.
-
 ;;;;;
+
+**Void Fragment** can be represented with **void**.
+
+**Empty Circles** can be represented with underscore (**_**).
+
 
 There are some special functions that the transpiler understands:
 
@@ -103,15 +133,16 @@ There are some special functions that the transpiler understands:
 
 So **(get_glyph reveal)** will give you pattern fragment of **Showcase Stratagem** trick.
 
+;;;;;
 
 **(arg \<1-8\>)** will provide **Primary Delusion**, **Secondary Delusion** and so on.
 
-;;;;;
 
 **(if \<condition\> \<trueCase\> \<falseCase\>)** will unwrap into **Quiet Distortion** with **Decision Distortion**.
 In LISP it can be represented as following:
 
 **(execute_same_scope (if_else \<condition\> ((\<trueCase\>)) ((\<false case\>))))**
 
+;;;;;
 
 Try seeing what happens when you store any of those fragment representations into a scroll!
