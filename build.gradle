@@ -51,6 +51,8 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
+	include clientImplementation(implementation("io.vavr:vavr:0.10.5"))
+
 	modImplementation "dev.enjarai:trickster:${project.trickster_version}"
 
 	dependencies {

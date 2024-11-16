@@ -40,6 +40,16 @@ public interface lispListener extends ParseTreeListener {
 	 */
 	void exitMacro(lispParser.MacroContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link lispParser#macroCall}.
+	 * @param ctx the parse tree
+	 */
+	void enterMacroCall(lispParser.MacroCallContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link lispParser#macroCall}.
+	 * @param ctx the parse tree
+	 */
+	void exitMacroCall(lispParser.MacroCallContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link lispParser#call}.
 	 * @param ctx the parse tree
 	 */

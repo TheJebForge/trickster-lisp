@@ -138,11 +138,4 @@ So **(get_glyph reveal)** will give you pattern fragment of **Showcase Stratagem
 **(arg \<1-8\>)** will provide **Primary Delusion**, **Secondary Delusion** and so on.
 
 
-**(if \<condition\> \<trueCase\> \<falseCase\>)** will unwrap into **Quiet Distortion** with **Decision Distortion**.
-In LISP it can be represented as following:
-
-**(execute_same_scope (if_else \<condition\> ((\<trueCase\>)) ((\<false case\>))))**
-
-;;;;;
-
 Try seeing what happens when you store any of those fragment representations into a scroll!

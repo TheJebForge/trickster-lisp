@@ -1,7 +1,8 @@
 package com.thejebforge.trickster_lisp.transpiler.fragment;
 
-import com.thejebforge.trickster_lisp.transpiler.LispAST;
+import com.thejebforge.trickster_lisp.transpiler.ast.Call;
 import com.thejebforge.trickster_lisp.transpiler.SpellConverter;
+import com.thejebforge.trickster_lisp.transpiler.ast.SExpression;
 import com.thejebforge.trickster_lisp.transpiler.util.CallUtils;
 import dev.enjarai.trickster.spell.Fragment;
 import dev.enjarai.trickster.spell.PatternGlyph;
@@ -11,8 +12,8 @@ import net.minecraft.util.Identifier;
 
 public class ArgToFragment implements ASTToFragment {
     @Override
-    public Fragment apply(LispAST.SExpression expression) {
-        var call = (LispAST.Call) expression;
+    public Fragment apply(SExpression expression) {
+        var call = (Call) expression;
 
         var index = CallUtils.getIntegerArgument(call, 0);
 

@@ -30,6 +30,12 @@ public interface lispVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitMacro(lispParser.MacroContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link lispParser#macroCall}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMacroCall(lispParser.MacroCallContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link lispParser#call}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

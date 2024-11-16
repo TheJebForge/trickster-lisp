@@ -11,12 +11,16 @@ sExpression :
     | FLOAT
     | STRING
     | IDENTIFIER
+    | macroCall
+    | GREEDY
     | call
     | list
     | map;
 
 preprocessor :
-    '(' '#def' name=IDENTIFIER '(' args+=IDENTIFIER* ')' substitute=sExpression ')' # macro;
+    '(' '#def' name=IDENTIFIER '(' args+=IDENTIFIER* GREEDY? ')' substitute=sExpression ')' # macro;
+
+macroCall : '(' name=IDENTIFIER '!' args+=sExpression* ')';
 
 call : '(' subject=sExpression args+=sExpression* ')';
 
@@ -35,6 +39,7 @@ FLOAT : ('0'..'9')+ '.' ('0'..'9')* EXPONENT?
 STRING :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
 OPERATOR : ('!'|'@'|'#'|'$'|'%'|'^'|'&'|'*'|'?'|'+'|'-'|'<'|'>'|'='|':'|'/'|'|')+;
 IDENTIFIER : [a-zA-Z] [a-zA-Z0-9:_-]*;
+GREEDY : '...';
 
 fragment EXPONENT : ('e'|'E') ('+'|'-')? ('0'..'9')+;
 
@@ -51,3 +56,4 @@ fragment OCTAL_ESC : '\\' ('0'..'3') ('0'..'7') ('0'..'7')
 fragment UNICODE_ESC : '\\' 'u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT;
 
 WS: [ \r\n\t]+ -> skip;
+LINE_COMMENT : ';' ~( '\n'|'\r' )* '\r'? '\n' -> skip;

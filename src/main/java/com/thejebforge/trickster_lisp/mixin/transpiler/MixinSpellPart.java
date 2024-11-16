@@ -1,6 +1,12 @@
 package com.thejebforge.trickster_lisp.mixin.transpiler;
 
-import com.thejebforge.trickster_lisp.transpiler.LispAST;
+import com.thejebforge.trickster_lisp.transpiler.SpellConverter;
+import com.thejebforge.trickster_lisp.transpiler.ast.Call;
+import com.thejebforge.trickster_lisp.transpiler.ast.builder.CallBuilder;
+import com.thejebforge.trickster_lisp.transpiler.ast.Empty;
+import com.thejebforge.trickster_lisp.transpiler.ast.Identifier;
+import com.thejebforge.trickster_lisp.transpiler.ast.Operator;
+import com.thejebforge.trickster_lisp.transpiler.ast.SExpression;
 import com.thejebforge.trickster_lisp.transpiler.fragment.FragmentToAST;
 import dev.enjarai.trickster.spell.PatternGlyph;
 import dev.enjarai.trickster.spell.SpellPart;
@@ -16,10 +22,10 @@ import static com.thejebforge.trickster_lisp.transpiler.SpellConverter.OPERATOR_
 @Mixin(SpellPart.class)
 public class MixinSpellPart implements FragmentToAST {
     @Unique
-    private LispAST.SExpression spellPartToExpression(SpellPart part, boolean preserveSpellParts) {
+    private SExpression spellPartToExpression(SpellPart part, boolean preserveSpellParts) {
         if (part.getGlyph() instanceof PatternGlyph pattern) {
             if (pattern.pattern().isEmpty()) {
-                var builder = LispAST.CallBuilder.builder();
+                var builder = CallBuilder.builder();
 
                 part.getSubParts().forEach(subpart -> {
                     var potentialAST = ((FragmentToAST) (Object) subpart).trickster_lisp$convert(preserveSpellParts);
@@ -27,7 +33,7 @@ public class MixinSpellPart implements FragmentToAST {
                     if (potentialAST.isPresent()) {
                         builder.add(potentialAST.get());
                     } else {
-                        builder.add(new LispAST.Identifier("unknown"));
+                        builder.add(new Identifier("unknown"));
                     }
                 });
 
@@ -41,53 +47,32 @@ public class MixinSpellPart implements FragmentToAST {
             if (id != null && id.getPath().startsWith(LOAD_ARGUMENT_PART)) {
                 var number = Integer.parseInt(id.getPath().substring(LOAD_ARGUMENT_PART.length()));
 
-                return LispAST.CallBuilder.builder("arg")
+                return CallBuilder.builder("arg")
                         .addNumber(number)
                         .build();
             }
 
-            // (execute_same_scope (? <cond> (<true case>) (<false case>))) to (if <cond> <true_case> <false_case>)
-            if (Tricks.EXECUTE_SAME_SCOPE.getPattern().equals(pattern.pattern())
-                    && part.subParts.size() == 1
-                    && part.subParts.getFirst().glyph instanceof PatternGlyph innerGlyph
-                    && Tricks.IF_ELSE.getPattern().equals(innerGlyph.pattern())
-            ) {
-                // We're close, just check if second and third subpart is nested
-                var ifElsePart = part.subParts.getFirst();
-
-                if (ifElsePart.subParts.size() == 3
-                        && ifElsePart.subParts.get(1).glyph instanceof SpellPart trueCase
-                        && ifElsePart.subParts.get(2).glyph instanceof SpellPart falseCase
-                ) {
-                    return LispAST.CallBuilder.builder("if")
-                            .add(spellPartToExpression(ifElsePart.subParts.getFirst(), preserveSpellParts))
-                            .add(spellPartToExpression(trueCase, preserveSpellParts))
-                            .add(spellPartToExpression(falseCase, preserveSpellParts))
-                            .build();
-                }
-            }
-
             if (id == null) {
-                return LispAST.CallBuilder.builder("pattern")
+                return CallBuilder.builder("pattern")
                         .addNumber(pattern.pattern().toInt())
                         .build();
             }
 
-            LispAST.SExpression idString = id.getNamespace().equals("trickster") ?
+            SExpression idString = id.getNamespace().equals("trickster") ?
                                     OPERATOR_MAPPING.containsKey(id.getPath()) ?
-                                            new LispAST.Operator(OPERATOR_MAPPING.get(id.getPath()))
-                                            : new LispAST.Identifier(id.getPath())
-                                    : new LispAST.Identifier(id.toString());
+                                            new Operator(OPERATOR_MAPPING.get(id.getPath()))
+                                            : new Identifier(id.getPath())
+                                    : new Identifier(id.toString());
 
             if (part.subParts.isEmpty()) {
                 return idString;
             }
 
-            var builder = LispAST.CallBuilder.builder(idString);
+            var builder = CallBuilder.builder(idString);
             part.getSubParts().forEach(subpart -> builder.add(spellPartToExpression(subpart, preserveSpellParts)));
             return builder.build();
         } else {
-            LispAST.SExpression subject = new LispAST.Empty();
+            SExpression subject = Empty.INSTANCE;
 
             var potentialAST = ((FragmentToAST) part.glyph).trickster_lisp$convert(preserveSpellParts);
 
@@ -95,20 +80,28 @@ public class MixinSpellPart implements FragmentToAST {
                 subject = potentialAST.get();
             }
 
+            // TODO: double parenthesies on primitives get lost
             if (part.getSubParts().isEmpty() && !preserveSpellParts) {
-                return subject;
-            } else {
-                var builder = LispAST.CallBuilder.builder(subject);
-
-                part.getSubParts().forEach(subpart -> builder.add(spellPartToExpression(subpart, preserveSpellParts)));
-
-                return builder.build();
+                if (subject instanceof Call call) {
+                    if (call.getSubject() instanceof Identifier id
+                            && SpellConverter.FRAGMENT_IDS.contains(id.getName())) {
+                        return subject;
+                    }
+                } else {
+                    return subject;
+                }
             }
+
+            var builder = CallBuilder.builder(subject);
+
+            part.getSubParts().forEach(subpart -> builder.add(spellPartToExpression(subpart, preserveSpellParts)));
+
+            return builder.build();
         }
     }
 
     @Override
-    public Optional<LispAST.SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
+    public Optional<SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
         return Optional.ofNullable(spellPartToExpression((SpellPart) (Object) this, preserveSpellParts));
     }
 }

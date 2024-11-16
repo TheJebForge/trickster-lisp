@@ -1,24 +1,27 @@
 package com.thejebforge.trickster_lisp.transpiler.fragment;
 
-import com.thejebforge.trickster_lisp.transpiler.LispAST;
 import com.thejebforge.trickster_lisp.transpiler.SpellConverter;
+import com.thejebforge.trickster_lisp.transpiler.ast.MapExpression;
+import com.thejebforge.trickster_lisp.transpiler.ast.SExpression;
 import dev.enjarai.trickster.spell.Fragment;
 import dev.enjarai.trickster.spell.fragment.MapFragment;
-import dev.enjarai.trickster.util.Hamt;
+import io.vavr.Tuple2;
+import io.vavr.collection.HashMap;
 
-import java.util.HashMap;
 
 public class MapToFragment implements ASTToFragment {
     @Override
-    public Fragment apply(LispAST.SExpression expression) {
-        var map = (LispAST.MapExpression) expression;
+    public Fragment apply(SExpression expression) {
+        var map = (MapExpression) expression;
 
-        var fragmentMap = new HashMap<Fragment, Fragment>();
-        map.getExpressionMap().forEach((k, v) -> fragmentMap.put(
-                SpellConverter.expressionToFragment(k),
-                SpellConverter.expressionToFragment(v)
+        return new MapFragment(HashMap.ofAll(
+                map.getExpressionMap().entrySet()
+                        .stream()
+                        .map(entry -> new Tuple2<>(
+                                SpellConverter.expressionToFragment(entry.getKey()),
+                                SpellConverter.expressionToFragment(entry.getValue())
+                        )),
+                entry -> entry
         ));
-
-        return new MapFragment(Hamt.fromMap(fragmentMap));
     }
 }

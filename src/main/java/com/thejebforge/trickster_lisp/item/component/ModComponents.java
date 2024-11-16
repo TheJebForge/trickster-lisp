@@ -13,5 +13,12 @@ public class ModComponents {
                     .codec(RawCodeComponent.CODEC).build()
     );
 
+    public static final ComponentType<MacroDefinitionComponent> MACRO_DEFINITION_COMPONENT = Registry.register(
+            Registries.DATA_COMPONENT_TYPE,
+            TricksterLISP.id("macro_definition"),
+            ComponentType.<MacroDefinitionComponent>builder()
+                    .endec(MacroDefinitionComponent.ENDEC).build()
+    );
+
     public static void register() {}
 }

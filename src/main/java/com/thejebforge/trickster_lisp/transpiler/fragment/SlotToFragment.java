@@ -1,7 +1,8 @@
 package com.thejebforge.trickster_lisp.transpiler.fragment;
 
 import com.mojang.datafixers.util.Either;
-import com.thejebforge.trickster_lisp.transpiler.LispAST;
+import com.thejebforge.trickster_lisp.transpiler.ast.Call;
+import com.thejebforge.trickster_lisp.transpiler.ast.SExpression;
 import com.thejebforge.trickster_lisp.transpiler.util.CallUtils;
 import dev.enjarai.trickster.spell.Fragment;
 import dev.enjarai.trickster.spell.fragment.SlotFragment;
@@ -12,15 +13,15 @@ import java.util.UUID;
 
 public class SlotToFragment implements ASTToFragment {
     @Override
-    public Fragment apply(LispAST.SExpression expression) {
-        var call = (LispAST.Call) expression;
+    public Fragment apply(SExpression expression) {
+        var call = (Call) expression;
 
         var slotNumber = CallUtils.getIntegerArgument(call, 0);
 
         if (call.getArguments().size() == 1) {
             return new SlotFragment(slotNumber, Optional.empty());
         } else {
-            if (call.getArguments().get(1) instanceof LispAST.Call) {
+            if (call.getArguments().get(1) instanceof Call) {
                 var vec = CallUtils.getNamedCallArgument(call, 1, "vec");
 
                 var x = CallUtils.getIntegerArgument(vec, 0);

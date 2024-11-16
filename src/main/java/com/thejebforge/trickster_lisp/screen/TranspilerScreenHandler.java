@@ -2,13 +2,17 @@ package com.thejebforge.trickster_lisp.screen;
 
 import com.thejebforge.trickster_lisp.TricksterLISP;
 import com.thejebforge.trickster_lisp.item.ModItems;
+import com.thejebforge.trickster_lisp.item.component.MacroDefinitionComponent;
 import com.thejebforge.trickster_lisp.item.component.ModComponents;
 import com.thejebforge.trickster_lisp.item.component.RawCodeComponent;
-import com.thejebforge.trickster_lisp.transpiler.LispAST;
+import com.thejebforge.trickster_lisp.transpiler.LispUtils;
 import com.thejebforge.trickster_lisp.transpiler.SpellConverter;
+import com.thejebforge.trickster_lisp.transpiler.ast.Macro;
+import com.thejebforge.trickster_lisp.transpiler.ast.Root;
 import com.thejebforge.trickster_lisp.transpiler.util.CallUtils;
 import dev.enjarai.trickster.item.component.FragmentComponent;
 import dev.enjarai.trickster.spell.Fragment;
+import io.vavr.collection.HashSet;
 import io.wispforest.owo.client.screens.SyncedProperty;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -16,8 +20,12 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.util.Hand;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+
+import static dev.enjarai.trickster.item.component.ModComponents.FRAGMENT;
 
 public class TranspilerScreenHandler extends ScreenHandler {
 
@@ -25,27 +33,29 @@ public class TranspilerScreenHandler extends ScreenHandler {
     public ItemStack otherHandStack;
 
     public final SyncedProperty<String> validationText = createProperty(String.class, "");
-    public final SyncedProperty<Fragment> spell = createProperty(Fragment.class, Fragment.ENDEC, null);
     public final SyncedProperty<String> initialRawCode = createProperty(String.class, "");
+    public final SyncedProperty<HashSet<Macro>> macros = createProperty(null, MacroDefinitionComponent.MACRO_SET_ENDEC, HashSet.empty());
 
     public Consumer<String> replaceCodeCallback;
 
     public TranspilerScreenHandler(int syncId, PlayerInventory playerInventory) {
-        this(syncId, playerInventory, playerInventory.player, null, null, null);
+        this(syncId, playerInventory, playerInventory.player, null, null, null, HashSet.empty());
     }
 
-    public TranspilerScreenHandler(int syncId, PlayerInventory playerInventory, PlayerEntity player, Hand hand, ItemStack currentStack, ItemStack otherHandStack) {
+    public TranspilerScreenHandler(
+            int syncId,
+            PlayerInventory playerInventory,
+            PlayerEntity player,
+            Hand hand,
+            ItemStack currentStack,
+            ItemStack otherHandStack,
+            HashSet<Macro> externalMacros
+    ) {
         super(ModScreenHandlers.TRANSPILER, syncId);
         this.currentStack = currentStack;
         this.otherHandStack = otherHandStack;
 
-        if (otherHandStack != null) {
-            var spell = otherHandStack.get(dev.enjarai.trickster.item.component.ModComponents.FRAGMENT);
-
-            if (spell != null && !spell.closed()) {
-                this.spell.set(spell.value());
-            }
-        }
+        this.macros.set(externalMacros);
 
         if (currentStack != null) {
             var code = currentStack.get(ModComponents.RAW_CODE_COMPONENT);
@@ -63,16 +73,33 @@ public class TranspilerScreenHandler extends ScreenHandler {
                     validationText.set("Code loaded successfully");
                     return;
                 }
+
+                if (otherHandStack.isOf(dev.enjarai.trickster.item.ModItems.MACRO_RING)) {
+                    var macros = otherHandStack.get(ModComponents.MACRO_DEFINITION_COMPONENT);
+
+                    if (macros != null) {
+                        var macroCode = new Root(macros.macros()).toCode();
+                        sendMessage(new ReplaceCode(macroCode));
+                        validationText.set("Macros code loaded successfully");
+                        return;
+                    }
+                }
+
+                var spell = otherHandStack.get(FRAGMENT);
+
+                if (spell != null && !spell.closed()) {
+                    sendMessage(new ReplaceCode(
+                            SpellConverter.spellToAST(
+                                    spell.value(),
+                                    macros.get().toJavaList()
+                            ).toCode()
+                    ));
+                    validationText.set("Spell loaded successfully");
+                    return;
+                }
             }
 
-            var currentSpell = spell.get();
-
-            if (currentSpell != null) {
-                validationText.set("Spell loaded successfully");
-                sendMessage(new ReplaceCode(SpellConverter.spellToAST(currentSpell).toCode()));
-            } else {
-                validationText.set("Couldn't load spell from offhand");
-            }
+            validationText.set("Couldn't load spell from offhand");
         });
 
         addServerboundMessage(ValidateCode.class, msg -> {
@@ -81,10 +108,10 @@ public class TranspilerScreenHandler extends ScreenHandler {
             saveCode(msg.code);
 
             try {
-                var ast = LispAST.parse(msg.code);
+                var ast = LispUtils.parse(msg.code);
                 validationText.set("SUCCESS");
                 sendMessage(new ReplaceCode(ast.toCode()));
-            } catch (LispAST.ParseError e) {
+            } catch (LispUtils.ParseError e) {
                 validationText.set(e.getMessage());
             }
         });
@@ -107,17 +134,30 @@ public class TranspilerScreenHandler extends ScreenHandler {
                 return;
             }
 
+            if (otherHandStack.isOf(dev.enjarai.trickster.item.ModItems.MACRO_RING)) {
+                try {
+                    var ast = LispUtils.parse(msg.code);
+                    var macros = ast.retrieveMacros();
+
+                    otherHandStack.set(ModComponents.MACRO_DEFINITION_COMPONENT, new MacroDefinitionComponent(macros));
+                    validationText.set("Macros code saved to the ring");
+                } catch (LispUtils.ParseError | CallUtils.ConversionError e) {
+                    validationText.set(e.getMessage());
+                }
+                return;
+            }
+
             try {
-                var ast = LispAST.parse(msg.code);
+                var ast = LispUtils.parse(msg.code).prependMacros(this.macros.get().toJavaList());
+                TricksterLISP.LOGGER.info("Tree size: {}", ast.treeSize());
                 var spellPart = SpellConverter.astToFinalFragment(ast);
 
                 TricksterLISP.LOGGER.info(spellPart.asText().getString());
 
                 FragmentComponent.setValue(otherHandStack, spellPart, Optional.empty(), false);
-                this.spell.set(spellPart);
 
                 validationText.set("SUCCESS");
-            } catch (LispAST.ParseError | CallUtils.ConversionError e) {
+            } catch (LispUtils.ParseError | CallUtils.ConversionError e) {
                 validationText.set(e.getMessage());
             }
         });

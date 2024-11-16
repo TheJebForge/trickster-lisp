@@ -3,6 +3,22 @@ package com.thejebforge.trickster_lisp.transpiler;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.thejebforge.trickster_lisp.TricksterLISP;
+import com.thejebforge.trickster_lisp.transpiler.ast.BooleanValue;
+import com.thejebforge.trickster_lisp.transpiler.ast.Call;
+import com.thejebforge.trickster_lisp.transpiler.ast.Macro;
+import com.thejebforge.trickster_lisp.transpiler.ast.MacroCall;
+import com.thejebforge.trickster_lisp.transpiler.ast.builder.CallBuilder;
+import com.thejebforge.trickster_lisp.transpiler.ast.DoubleValue;
+import com.thejebforge.trickster_lisp.transpiler.ast.Empty;
+import com.thejebforge.trickster_lisp.transpiler.ast.ExpressionList;
+import com.thejebforge.trickster_lisp.transpiler.ast.Greedy;
+import com.thejebforge.trickster_lisp.transpiler.ast.IntegerValue;
+import com.thejebforge.trickster_lisp.transpiler.ast.MapExpression;
+import com.thejebforge.trickster_lisp.transpiler.ast.Operator;
+import com.thejebforge.trickster_lisp.transpiler.ast.Root;
+import com.thejebforge.trickster_lisp.transpiler.ast.builder.RootBuilder;
+import com.thejebforge.trickster_lisp.transpiler.ast.SExpression;
+import com.thejebforge.trickster_lisp.transpiler.ast.Void;
 import com.thejebforge.trickster_lisp.transpiler.fragment.*;
 import com.thejebforge.trickster_lisp.transpiler.util.CallUtils;
 import dev.enjarai.trickster.spell.Fragment;
@@ -70,49 +86,49 @@ public abstract class SpellConverter {
         put("void", new VoidToFragment());
         put("zalgo", new ZalgoToFragment());
         put("arg", new ArgToFragment());
-        put("if", new IfStatementToFragment());
         put("get_glyph", new GetGlyphToFragment());
     }};
 
     public static final Map<Class<?>, ASTToFragment> PRIMITIVE_CONVERTERS = new HashMap<>(){{
-        put(LispAST.IntegerValue.class, new NumberToFragment());
-        put(LispAST.DoubleValue.class, new NumberToFragment());
-        put(LispAST.BooleanValue.class, new BooleanToFragment());
-        put(LispAST.ExpressionList.class, new ListToFragment());
-        put(LispAST.MapExpression.class, new MapToFragment());
-        put(LispAST.Void.class, new VoidToFragment());
-        put(LispAST.Empty.class, new EmptyToFragment());
+        put(IntegerValue.class, new NumberToFragment());
+        put(DoubleValue.class, new NumberToFragment());
+        put(BooleanValue.class, new BooleanToFragment());
+        put(ExpressionList.class, new ListToFragment());
+        put(MapExpression.class, new MapToFragment());
+        put(Void.class, new VoidToFragment());
+        put(Empty.class, new EmptyToFragment());
+        put(Greedy.class, new GreedyToException());
+        put(MacroCall.class, new MacroCallToException());
     }};
 
-    public static LispAST.SExpression wrapExpressionIfNeeded(Fragment spell) {
+    public static SExpression wrapExpressionIfNeeded(Fragment spell) {
         var expression = fragmentToExpression(spell);
 
         if (spell instanceof SpellPart) {
-            if (expression instanceof LispAST.Call call) {
-                if (call.getSubject() instanceof LispAST.Identifier id
+            if (expression instanceof Call call) {
+                if (call.getSubject() instanceof com.thejebforge.trickster_lisp.transpiler.ast.Identifier id
                     && FRAGMENT_IDS.contains(id.getName())) {
-                    return LispAST.CallBuilder.builder(expression).build();
+                    return CallBuilder.builder(expression).build();
                 }
 
                 return expression;
             }
 
-            return LispAST.CallBuilder.builder(expression).build();
+            return CallBuilder.builder(expression).build();
         }
 
         return expression;
     }
 
-    public static LispAST.Root spellToAST(Fragment spell) {
-        TricksterLISP.LOGGER.info(spell.asText().getString());
-
-        return LispAST.RootBuilder.builder()
+    public static Root spellToAST(Fragment spell, List<Macro> macros) {
+        return RootBuilder.builder()
                 .add(wrapExpressionIfNeeded(spell))
                 .build()
+                .reverseMacros(macros)
                 .simplifyRoot();
     }
 
-    public static LispAST.SExpression fragmentToExpression(Fragment frag) {
+    public static SExpression fragmentToExpression(Fragment frag) {
         try {
             if (frag instanceof FragmentToAST toAST) {
                 var potentialAST = toAST.trickster_lisp$convert();
@@ -126,7 +142,7 @@ public abstract class SpellConverter {
         throw new IllegalArgumentException("Unknown fragment type: " + frag.getClass().getName());
     }
 
-    public static boolean isIdentifierValid(LispAST.Identifier id) {
+    public static boolean isIdentifierValid(com.thejebforge.trickster_lisp.transpiler.ast.Identifier id) {
         var splits = id.getName().split(":");
 
         var trick_id = splits.length > 1 ?
@@ -137,13 +153,13 @@ public abstract class SpellConverter {
                 || Tricks.REGISTRY.containsId(trick_id);
     }
 
-    public static boolean isOperatorValid(LispAST.Operator op) {
+    public static boolean isOperatorValid(Operator op) {
         return SpellConverter.OPERATOR_MAPPING.containsValue(op.getType());
     }
 
     // TODO: Don't accept strings in AST -> SpellPart
 
-    private static Pattern idToTrickPattern(LispAST.SExpression parent, LispAST.Identifier id) {
+    private static Pattern idToTrickPattern(SExpression parent, com.thejebforge.trickster_lisp.transpiler.ast.Identifier id) {
         var split = id.getName().split(":");
         var trickId = split.length > 1 ?
                 Identifier.of(split[0], split[1])
@@ -157,16 +173,21 @@ public abstract class SpellConverter {
         return trick.getPattern();
     }
 
-    public static Fragment expressionToFragment(LispAST.SExpression expr) {
+    public static Fragment expressionToFragment(SExpression expr) {
         // Map operators back to proper functions
-        if (expr instanceof LispAST.Call call && call.getSubject() instanceof LispAST.Operator op) {
-            var callBuilder = LispAST.CallBuilder.builder(OPERATOR_MAPPING.inverse().get(op.getType()));
+        if (expr instanceof Call call && call.getSubject() instanceof Operator op) {
+            var mappedOperator = OPERATOR_MAPPING.inverse().get(op.getType());
+
+            if (mappedOperator == null)
+                throw CallUtils.getConversionError(op, "Unknown operator");
+
+            var callBuilder = CallBuilder.builder(mappedOperator);
             call.getArguments().forEach(callBuilder::add);
             expr = callBuilder.build();
         }
 
         // Now actually map things
-        if (expr instanceof LispAST.Call call && call.getSubject() instanceof LispAST.Identifier callId) {
+        if (expr instanceof Call call && call.getSubject() instanceof com.thejebforge.trickster_lisp.transpiler.ast.Identifier callId) {
             if (CALL_ID_CONVERTERS.containsKey(callId.getName())) {
                 var converter = CALL_ID_CONVERTERS.get(callId.getName());
 
@@ -184,10 +205,10 @@ public abstract class SpellConverter {
             var converter = PRIMITIVE_CONVERTERS.get(expr.getClass());
 
             return converter.apply(expr);
-        } else if (expr instanceof LispAST.Identifier id) {
+        } else if (expr instanceof com.thejebforge.trickster_lisp.transpiler.ast.Identifier id) {
             return new SpellPart(new PatternGlyph(idToTrickPattern(expr, id)));
-        } else if (expr instanceof LispAST.Operator op) {
-            var underlyingId = new LispAST.Identifier(OPERATOR_MAPPING.inverse().get(op.getType()));
+        } else if (expr instanceof Operator op) {
+            var underlyingId = new com.thejebforge.trickster_lisp.transpiler.ast.Identifier(OPERATOR_MAPPING.inverse().get(op.getType()));
             return new SpellPart(new PatternGlyph(idToTrickPattern(expr, underlyingId)));
 //        } else if (expr instanceof LispAST.Call mainCall && mainCall.getSubject() instanceof LispAST.Call childCall) {
 //            return new SpellPart(
@@ -197,7 +218,7 @@ public abstract class SpellConverter {
 //                            .map(SpellConverter::wrap)
 //                            .toList()
 //            );
-        } else if (expr instanceof LispAST.Call call) {
+        } else if (expr instanceof Call call) {
             return new SpellPart(
                     expressionToFragment(call.getSubject()),
                     call.getArguments().stream()
@@ -216,7 +237,7 @@ public abstract class SpellConverter {
         } else return (SpellPart) fragment;
     }
 
-    public static Fragment astToFinalFragment(LispAST.Root root) {
+    public static Fragment astToFinalFragment(Root root) {
         root = root.runPreProcessors();
 
         if (root.expressions().isEmpty()) {

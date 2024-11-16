@@ -3,6 +3,7 @@ package com.thejebforge.trickster_lisp;
 import com.thejebforge.trickster_lisp.item.ModItems;
 import com.thejebforge.trickster_lisp.item.component.ModComponents;
 import com.thejebforge.trickster_lisp.screen.ModScreenHandlers;
+import com.thejebforge.trickster_lisp.transpiler.ast.SExpressionType;
 import net.fabricmc.api.ModInitializer;
 
 import net.minecraft.util.Identifier;
@@ -25,6 +26,7 @@ public class TricksterLISP implements ModInitializer {
 		ModScreenHandlers.register();
 		ModComponents.register();
 		ModItems.register();
+		SExpressionType.register();
 	}
 
 	public static Identifier id(String path) {
