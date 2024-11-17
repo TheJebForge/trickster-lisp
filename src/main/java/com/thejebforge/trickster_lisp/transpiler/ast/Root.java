@@ -5,14 +5,12 @@ import io.vavr.Tuple2;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 
 public record Root(List<PreProcessor> preProcessors, List<SExpression> expressions) {
@@ -37,7 +35,7 @@ public record Root(List<PreProcessor> preProcessors, List<SExpression> expressio
         }
     }
 
-    private Map<String, Macro> collectMacroMap() {
+    private Map<String, Macro> collectMacroMap(List<PreProcessor> preProcessors) {
         var map = new HashMap<String, Macro>();
 
         preProcessors.stream()
@@ -88,15 +86,19 @@ public record Root(List<PreProcessor> preProcessors, List<SExpression> expressio
         }
     }
 
-    public Root runPreProcessors() {
-        var macros = collectMacroMap();
+    public Root runPreProcessors(List<PreProcessor> preProcessors) {
+        var macros = collectMacroMap(preProcessors);
 
         return new Root(
-                preProcessors,
+                this.preProcessors,
                 expressions.stream()
                         .map(rootExpr -> traverseAndApply(rootExpr, expr -> applyMacros(expr, macros)))
                         .toList()
         );
+    }
+
+    public Root runPreProcessors() {
+        return runPreProcessors(preProcessors);
     }
 
     public Root reverseMacros(List<Macro> macros) {
@@ -159,6 +161,11 @@ public record Root(List<PreProcessor> preProcessors, List<SExpression> expressio
 
     public Root prependMacros(Collection<Macro> macros) {
         preProcessors.addAll(0, macros);
+        return this;
+    }
+
+    public Root appendMacros(Collection<Macro> macros) {
+        preProcessors.addAll(macros);
         return this;
     }
 

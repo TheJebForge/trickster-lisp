@@ -80,7 +80,6 @@ public class MixinSpellPart implements FragmentToAST {
                 subject = potentialAST.get();
             }
 
-            // TODO: double parenthesies on primitives get lost
             if (part.getSubParts().isEmpty() && !preserveSpellParts) {
                 if (subject instanceof Call call) {
                     if (call.getSubject() instanceof Identifier id
@@ -88,7 +87,12 @@ public class MixinSpellPart implements FragmentToAST {
                         return subject;
                     }
                 } else {
-                    return subject;
+                    if (part.glyph instanceof SpellPart inner
+                        && !(inner.glyph instanceof SpellPart)) {
+                        return CallBuilder.builder(CallBuilder.builder(subject).build()).build();
+                    } else {
+                        return subject;
+                    }
                 }
             }
 

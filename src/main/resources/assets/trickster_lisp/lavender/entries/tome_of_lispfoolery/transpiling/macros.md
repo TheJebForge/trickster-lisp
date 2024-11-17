@@ -49,24 +49,22 @@ When using this along with normal arguments, greedy operator must be the last in
 
 ;;;;;
 
-Macros are Transpiler only features, storing code that contains macros into a scroll,
-will just apply the macros. 
-
-**Loading code from a scroll will erase the macros!**
+Macros are Transpiler only features, Trickster cannot use LISP macros or transfer them in any way. 
 
 
-Macros can be stored to **Paper and Pencil**, or **Macro Ring**.
+Storing code to a scroll will convert the code to the spell, but also store macros as additional data.
 
-Trying to store code while holding a **macro ring** in offhand, will store macros onto it! 
+
+Transpiler will try to reverse any macros that it found while loading spells.
 
 ;;;;;
 
 You can see how many LISP macros are stored by hovering mouse over the item.
 
 
-When macros are stored on a macro ring and equipped in **ring slot**, 
+When macros are stored on any ring (like **macro ring**) and equipped in **ring slot**, 
 transpiler will be able to reverse any patterns it finds into macro calls!
 
 
-So, if you want cleaner code when using macros, consider putting them on a macro ring
+So, if you want cleaner code when using macros, consider putting them on a ring
 and letting transpiler reverse them on conversion.

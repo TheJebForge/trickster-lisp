@@ -1,6 +1,6 @@
 package com.thejebforge.trickster_lisp.mixin.transpiler;
 
-import com.thejebforge.trickster_lisp.transpiler.ast.builder.CallBuilder;
+import com.thejebforge.trickster_lisp.transpiler.ast.Void;
 import com.thejebforge.trickster_lisp.transpiler.ast.SExpression;
 import com.thejebforge.trickster_lisp.transpiler.fragment.FragmentToAST;
 import dev.enjarai.trickster.spell.fragment.VoidFragment;
@@ -12,7 +12,6 @@ import java.util.Optional;
 public class MixinVoidFragment implements FragmentToAST {
     @Override
     public Optional<SExpression> trickster_lisp$convert(boolean preserveSpellParts) {
-        return Optional.ofNullable(CallBuilder.builder("void")
-                .build());
+        return Optional.of(Void.INSTANCE);
     }
 }

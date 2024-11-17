@@ -2,11 +2,11 @@ package com.thejebforge.trickster_lisp.transpiler;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.thejebforge.trickster_lisp.TricksterLISP;
 import com.thejebforge.trickster_lisp.transpiler.ast.BooleanValue;
 import com.thejebforge.trickster_lisp.transpiler.ast.Call;
 import com.thejebforge.trickster_lisp.transpiler.ast.Macro;
 import com.thejebforge.trickster_lisp.transpiler.ast.MacroCall;
+import com.thejebforge.trickster_lisp.transpiler.ast.PreProcessor;
 import com.thejebforge.trickster_lisp.transpiler.ast.builder.CallBuilder;
 import com.thejebforge.trickster_lisp.transpiler.ast.DoubleValue;
 import com.thejebforge.trickster_lisp.transpiler.ast.Empty;
@@ -31,6 +31,7 @@ import dev.enjarai.trickster.spell.trick.Tricks;
 import net.minecraft.util.Identifier;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public abstract class SpellConverter {
     private static String getTrickId(Trick trick) {
@@ -120,11 +121,12 @@ public abstract class SpellConverter {
         return expression;
     }
 
-    public static Root spellToAST(Fragment spell, List<Macro> macros) {
+    public static Root spellToAST(Fragment spell, List<Macro> savedMacros, List<Macro> macros) {
         return RootBuilder.builder()
                 .add(wrapExpressionIfNeeded(spell))
                 .build()
-                .reverseMacros(macros)
+                .reverseMacros(Stream.concat(macros.stream(), savedMacros.stream()).toList())
+                .appendMacros(savedMacros)
                 .simplifyRoot();
     }
 
@@ -237,8 +239,10 @@ public abstract class SpellConverter {
         } else return (SpellPart) fragment;
     }
 
-    public static Fragment astToFinalFragment(Root root) {
-        root = root.runPreProcessors();
+    public static Fragment astToFinalFragment(Root root, List<Macro> macros) {
+        root = root
+                .runPreProcessors(macros.stream().map(PreProcessor.class::cast).toList())
+                .runPreProcessors();
 
         if (root.expressions().isEmpty()) {
             return new VoidFragment();

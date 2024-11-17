@@ -1,6 +1,5 @@
 package com.thejebforge.trickster_lisp.screen;
 
-import com.thejebforge.trickster_lisp.TricksterLISP;
 import com.thejebforge.trickster_lisp.item.ModItems;
 import com.thejebforge.trickster_lisp.item.component.MacroDefinitionComponent;
 import com.thejebforge.trickster_lisp.item.component.ModComponents;
@@ -8,10 +7,8 @@ import com.thejebforge.trickster_lisp.item.component.RawCodeComponent;
 import com.thejebforge.trickster_lisp.transpiler.LispUtils;
 import com.thejebforge.trickster_lisp.transpiler.SpellConverter;
 import com.thejebforge.trickster_lisp.transpiler.ast.Macro;
-import com.thejebforge.trickster_lisp.transpiler.ast.Root;
 import com.thejebforge.trickster_lisp.transpiler.util.CallUtils;
 import dev.enjarai.trickster.item.component.FragmentComponent;
-import dev.enjarai.trickster.spell.Fragment;
 import io.vavr.collection.HashSet;
 import io.wispforest.owo.client.screens.SyncedProperty;
 import net.minecraft.entity.player.PlayerEntity;
@@ -21,7 +18,6 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.util.Hand;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -74,16 +70,7 @@ public class TranspilerScreenHandler extends ScreenHandler {
                     return;
                 }
 
-                if (otherHandStack.isOf(dev.enjarai.trickster.item.ModItems.MACRO_RING)) {
-                    var macros = otherHandStack.get(ModComponents.MACRO_DEFINITION_COMPONENT);
-
-                    if (macros != null) {
-                        var macroCode = new Root(macros.macros()).toCode();
-                        sendMessage(new ReplaceCode(macroCode));
-                        validationText.set("Macros code loaded successfully");
-                        return;
-                    }
-                }
+                var macros = otherHandStack.get(ModComponents.MACRO_DEFINITION_COMPONENT);
 
                 var spell = otherHandStack.get(FRAGMENT);
 
@@ -91,7 +78,8 @@ public class TranspilerScreenHandler extends ScreenHandler {
                     sendMessage(new ReplaceCode(
                             SpellConverter.spellToAST(
                                     spell.value(),
-                                    macros.get().toJavaList()
+                                    macros != null ? macros.macros() : Collections.emptyList(),
+                                    this.macros.get().toJavaList()
                             ).toCode()
                     ));
                     validationText.set("Spell loaded successfully");
@@ -134,27 +122,16 @@ public class TranspilerScreenHandler extends ScreenHandler {
                 return;
             }
 
-            if (otherHandStack.isOf(dev.enjarai.trickster.item.ModItems.MACRO_RING)) {
-                try {
-                    var ast = LispUtils.parse(msg.code);
-                    var macros = ast.retrieveMacros();
-
-                    otherHandStack.set(ModComponents.MACRO_DEFINITION_COMPONENT, new MacroDefinitionComponent(macros));
-                    validationText.set("Macros code saved to the ring");
-                } catch (LispUtils.ParseError | CallUtils.ConversionError e) {
-                    validationText.set(e.getMessage());
-                }
-                return;
-            }
-
             try {
-                var ast = LispUtils.parse(msg.code).prependMacros(this.macros.get().toJavaList());
-                TricksterLISP.LOGGER.info("Tree size: {}", ast.treeSize());
-                var spellPart = SpellConverter.astToFinalFragment(ast);
-
-                TricksterLISP.LOGGER.info(spellPart.asText().getString());
+                var ast = LispUtils.parse(msg.code);
+                var spellPart = SpellConverter.astToFinalFragment(ast, this.macros.get().toJavaList());
 
                 FragmentComponent.setValue(otherHandStack, spellPart, Optional.empty(), false);
+
+                var macros = ast.retrieveMacros();
+                if (!macros.isEmpty()) {
+                    otherHandStack.set(ModComponents.MACRO_DEFINITION_COMPONENT, new MacroDefinitionComponent(macros));
+                }
 
                 validationText.set("SUCCESS");
             } catch (LispUtils.ParseError | CallUtils.ConversionError e) {
