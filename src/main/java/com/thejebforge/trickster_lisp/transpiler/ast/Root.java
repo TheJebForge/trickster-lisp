@@ -115,8 +115,18 @@ public record Root(List<PreProcessor> preProcessors, List<SExpression> expressio
     }
 
     private SExpression reverseMacros(SExpression expr, List<Macro> macros) {
-        // Recurse, so we can walk up the tree later
-        // Don't take macro calls into consideration, they shouldn't exist at the moment
+        // Match macros
+        SExpression currentExpr = expr;
+
+        var candidate = macros.stream()
+                .map(m -> new Tuple2<>(m, m.matchAndCollect(currentExpr)))
+                .filter(t -> t._2().isPresent())
+                .max(Comparator.comparingLong(a -> a._1().treeSize()));
+
+        //noinspection OptionalGetWithoutIsPresent
+        expr = candidate.map(t -> t._2().get()).orElse(expr);
+
+        // Recurse into arguments
         switch (expr) {
             case Call call -> {
                 call.setSubject(reverseMacros(call.getSubject(), macros));
@@ -126,6 +136,12 @@ public record Root(List<PreProcessor> preProcessors, List<SExpression> expressio
                                 .collect(Collectors.toCollection(ArrayList::new))
                 );
             }
+
+            case MacroCall macroCall -> macroCall.setArguments(
+                    macroCall.getArguments().stream()
+                            .map(e -> reverseMacros(e, macros))
+                            .collect(Collectors.toCollection(ArrayList::new))
+            );
 
             case ExpressionList list -> list.setExpressions(
                     list.getExpressions().stream()
@@ -149,14 +165,7 @@ public record Root(List<PreProcessor> preProcessors, List<SExpression> expressio
             default -> {}
         }
 
-        // After we recursed as much as we can, do the matching
-        var candidate = macros.stream()
-                .map(m -> new Tuple2<>(m, m.matchAndCollect(expr)))
-                .filter(t -> t._2().isPresent())
-                .min(Comparator.comparingLong(a -> a._1().treeSize()));
-
-        //noinspection OptionalGetWithoutIsPresent
-        return candidate.map(t -> t._2().get()).orElse(expr);
+        return expr;
     }
 
     public Root prependMacros(Collection<Macro> macros) {
