@@ -32,10 +32,10 @@ map : '{' mapEntry? (',' mapEntry)* '}';
 EMPTY : '_';
 VOID : 'void';
 BOOLEAN : 'true' | 'false';
-INTEGER : [0-9]+;
-FLOAT : ('0'..'9')+ '.' ('0'..'9')* EXPONENT?
-        | '.' ('0'..'9')+ EXPONENT?
-        | ('0'..'9')+ EXPONENT;
+INTEGER : '-'? [0-9]+;
+FLOAT : '-'? ('0'..'9')+ '.' ('0'..'9')* EXPONENT?
+        | '-'? '.' ('0'..'9')+ EXPONENT?
+        | '-'? ('0'..'9')+ EXPONENT;
 STRING :  '"' ( ESC_SEQ | ~('\\'|'"') )* '"';
 OPERATOR : ('!'|'@'|'#'|'$'|'%'|'^'|'&'|'*'|'?'|'+'|'-'|'<'|'>'|'='|':'|'/'|'|')+;
 IDENTIFIER : [a-zA-Z] [a-zA-Z0-9:_-]*;

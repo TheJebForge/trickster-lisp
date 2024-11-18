@@ -131,6 +131,8 @@ public class TranspilerScreenHandler extends ScreenHandler {
                 var macros = ast.retrieveMacros();
                 if (!macros.isEmpty()) {
                     otherHandStack.set(ModComponents.MACRO_DEFINITION_COMPONENT, new MacroDefinitionComponent(macros));
+                } else {
+                    otherHandStack.remove(ModComponents.MACRO_DEFINITION_COMPONENT);
                 }
 
                 validationText.set("SUCCESS");
