@@ -133,9 +133,13 @@ public abstract class SpellConverter {
     }
 
     public static SExpression fragmentToExpression(Fragment frag) {
+        return fragmentToExpression(frag, false);
+    }
+
+    public static SExpression fragmentToExpression(Fragment frag, boolean preserveSpellParts) {
         try {
             if (frag instanceof FragmentToAST toAST) {
-                var potentialAST = toAST.trickster_lisp$convert();
+                var potentialAST = toAST.trickster_lisp$convert(preserveSpellParts);
 
                 if (potentialAST.isPresent()) {
                     return potentialAST.get();
