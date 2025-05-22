@@ -8,7 +8,7 @@ import io.wispforest.endec.StructEndec;
 
 public abstract class SExpression {
     @SuppressWarnings("unchecked")
-    public static final StructEndec<SExpression> ENDEC = EndecTomfoolery.lazy(() -> (StructEndec<SExpression>) Endec.dispatchedStruct(
+    public static final StructEndec<SExpression> ENDEC = EndecTomfoolery.lazyStruct(() -> (StructEndec<SExpression>) Endec.dispatchedStruct(
             SExpressionType::endec,
             SExpression::type,
             MinecraftEndecs.ofRegistry(SExpressionType.REGISTRY)
