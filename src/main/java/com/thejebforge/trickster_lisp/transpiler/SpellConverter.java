@@ -25,6 +25,7 @@ import dev.enjarai.trickster.spell.Fragment;
 import dev.enjarai.trickster.spell.Pattern;
 import dev.enjarai.trickster.spell.PatternGlyph;
 import dev.enjarai.trickster.spell.SpellPart;
+import dev.enjarai.trickster.spell.fragment.FragmentType;
 import dev.enjarai.trickster.spell.fragment.VoidFragment;
 import dev.enjarai.trickster.spell.trick.Trick;
 import dev.enjarai.trickster.spell.trick.Tricks;
@@ -34,7 +35,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 public abstract class SpellConverter {
-    private static String getTrickId(Trick trick) {
+    private static String getTrickId(Trick<?> trick) {
         return Objects.requireNonNull(Tricks.REGISTRY.getId(trick)).getPath();
     }
 
@@ -101,6 +102,7 @@ public abstract class SpellConverter {
         put(Greedy.class, new GreedyToException());
         put(MacroCall.class, new MacroCallToException());
     }};
+    public static Map<FragmentType<?>, CustomFragmentToAST> CUSTOM_FRAGMENT_CONVERTERS = new HashMap<>();
 
     public static SExpression wrapExpressionIfNeeded(Fragment spell) {
         var expression = fragmentToExpression(spell);
@@ -131,15 +133,25 @@ public abstract class SpellConverter {
     }
 
     public static SExpression fragmentToExpression(Fragment frag) {
+        return fragmentToExpression(frag, false);
+    }
+
+    public static SExpression fragmentToExpression(Fragment frag, boolean preserveSpellParts) {
         try {
             if (frag instanceof FragmentToAST toAST) {
-                var potentialAST = toAST.trickster_lisp$convert();
+                var potentialAST = toAST.trickster_lisp$convert(preserveSpellParts);
 
                 if (potentialAST.isPresent()) {
                     return potentialAST.get();
                 }
             }
         } catch (ClassCastException ignored) {}
+
+        var ty = frag.type();
+        if (CUSTOM_FRAGMENT_CONVERTERS.containsKey(ty)) {
+            var converter = CUSTOM_FRAGMENT_CONVERTERS.get(ty);
+            return converter.apply(frag);
+        }
 
         throw new IllegalArgumentException("Unknown fragment type: " + frag.getClass().getName());
     }

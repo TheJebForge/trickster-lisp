@@ -72,13 +72,7 @@ public class MixinSpellPart implements FragmentToAST {
             part.getSubParts().forEach(subpart -> builder.add(spellPartToExpression(subpart, preserveSpellParts)));
             return builder.build();
         } else {
-            SExpression subject = Empty.INSTANCE;
-
-            var potentialAST = ((FragmentToAST) part.glyph).trickster_lisp$convert(preserveSpellParts);
-
-            if (potentialAST.isPresent()) {
-                subject = potentialAST.get();
-            }
+            SExpression subject = SpellConverter.fragmentToExpression(part.glyph);
 
             if (part.getSubParts().isEmpty() && !preserveSpellParts) {
                 if (subject instanceof Call call) {
