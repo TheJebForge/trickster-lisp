@@ -2,9 +2,9 @@ package com.thejebforge.trickster_lisp.transpiler.ast;
 
 import com.thejebforge.trickster_lisp.transpiler.LispUtils;
 import dev.enjarai.trickster.EndecTomfoolery;
-import io.wispforest.accessories.endec.MinecraftEndecs;
 import io.wispforest.endec.Endec;
 import io.wispforest.endec.StructEndec;
+import io.wispforest.owo.serialization.endec.MinecraftEndecs;
 
 public abstract class SExpression {
     @SuppressWarnings("unchecked")
